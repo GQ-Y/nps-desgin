@@ -124,6 +124,86 @@ export async function getDashboard(): Promise<DashboardData> {
   return handleResponse<DashboardData>(res);
 }
 
+// --- 通知 ---
+export interface Notification {
+  id: number;
+  type: string;
+  client_id: number;
+  remark: string;
+  addr: string;
+  created_at: string;
+}
+
+export async function getNotifications(): Promise<Notification[]> {
+  const res = await fetch(apiUrl('/api/notifications'), { ...defaultOptions, method: 'GET' });
+  if (res.status === 401) throw new Error('未登录');
+  return handleResponse<Notification[]>(res);
+}
+
+// --- 客户端分组 ---
+export interface ClientGroup {
+  id: number;
+  parent_id: number;
+  name: string;
+  sort_order: number;
+}
+
+export async function getGroups(): Promise<ClientGroup[]> {
+  const res = await fetch(apiUrl('/api/groups'), { ...defaultOptions, method: 'GET' });
+  if (res.status === 401) throw new Error('未登录');
+  return handleResponse<ClientGroup[]>(res);
+}
+
+export async function addGroup(params: { parent_id?: number; name: string; sort_order?: number }): Promise<{ status: number; msg: string; id?: number }> {
+  const res = await fetch(apiUrl('/api/groups/add'), {
+    ...defaultOptions,
+    method: 'POST',
+    headers: { ...defaultOptions.headers, 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: formBody(params),
+  });
+  return handleResponse(res);
+}
+
+export async function editGroup(params: { id: number; name?: string; parent_id?: number; sort_order?: number }): Promise<{ status: number; msg: string }> {
+  const res = await fetch(apiUrl('/api/groups/edit'), {
+    ...defaultOptions,
+    method: 'POST',
+    headers: { ...defaultOptions.headers, 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: formBody(params),
+  });
+  return handleResponse(res);
+}
+
+export async function moveGroup(id: number, parentId: number): Promise<{ status: number; msg: string }> {
+  const res = await fetch(apiUrl('/api/groups/move-group'), {
+    ...defaultOptions,
+    method: 'POST',
+    headers: { ...defaultOptions.headers, 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: formBody({ id, parent_id: parentId }),
+  });
+  return handleResponse(res);
+}
+
+export async function delGroup(id: number): Promise<{ status: number; msg: string }> {
+  const res = await fetch(apiUrl('/api/groups/del'), {
+    ...defaultOptions,
+    method: 'POST',
+    headers: { ...defaultOptions.headers, 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: formBody({ id }),
+  });
+  return handleResponse(res);
+}
+
+export async function moveClientToGroup(clientId: number, groupId: number): Promise<{ status: number; msg: string }> {
+  const res = await fetch(apiUrl('/api/groups/move-client'), {
+    ...defaultOptions,
+    method: 'POST',
+    headers: { ...defaultOptions.headers, 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: formBody({ client_id: clientId, group_id: groupId }),
+  });
+  return handleResponse(res);
+}
+
 // --- 客户端 ---
 export interface ClientListParams {
   offset?: number;
@@ -131,11 +211,13 @@ export interface ClientListParams {
   search?: string;
   sort?: string;
   order?: string;
+  group_id?: number;
 }
 
 export interface ClientListResult {
   rows: Array<{
     Id: number;
+    GroupId?: number;
     Remark?: string;
     Version?: string;
     VerifyKey?: string;
@@ -174,6 +256,7 @@ export async function getClientList(params: ClientListParams): Promise<ClientLis
       search: params.search,
       sort: params.sort,
       order: params.order,
+      group_id: params.group_id ?? 0,
     }),
   });
   return handleResponse<ClientListResult>(res);

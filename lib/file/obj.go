@@ -31,9 +31,18 @@ type Config struct {
 	Crypt    bool
 }
 
+// ClientGroup 客户端分组，树形结构
+type ClientGroup struct {
+	Id       int    `json:"id"`
+	ParentId int    `json:"parent_id"` // 0 表示根节点
+	Name     string `json:"name"`
+	SortOrder int   `json:"sort_order"`
+}
+
 type Client struct {
 	Cnf             *Config
 	Id              int        //id
+	GroupId         int        `json:"GroupId"` // 所属分组，0 表示未分组
 	VerifyKey       string     //verify key
 	Addr            string     //the ip of client
 	Remark          string     //remark

@@ -27,7 +27,8 @@ func (s *ClientController) List() {
 	} else {
 		clientId = clientIdSession.(int)
 	}
-	list, cnt := server.GetClientList(start, length, s.getEscapeString("search"), s.getEscapeString("sort"), s.getEscapeString("order"), clientId)
+	groupId := s.GetIntNoErr("group_id") // 0=all, -1=ungrouped, >0=specific group
+	list, cnt := server.GetClientList(start, length, s.getEscapeString("search"), s.getEscapeString("sort"), s.getEscapeString("order"), clientId, groupId)
 	cmd := make(map[string]interface{})
 	ip := s.Ctx.Request.Host
 	cmd["ip"] = common.GetIpByAddr(ip)
@@ -48,6 +49,7 @@ func (s *ClientController) Add() {
 			Id:        int(file.GetDb().JsonDb.GetClientId()),
 			Status:    true,
 			Remark:    s.getEscapeString("remark"),
+			GroupId:   s.GetIntNoErr("group_id"),
 			Cnf: &file.Config{
 				U:        s.getEscapeString("u"),
 				P:        s.getEscapeString("p"),
@@ -117,6 +119,7 @@ func (s *ClientController) Edit() {
 					return
 				}
 				c.VerifyKey = s.getEscapeString("vkey")
+				c.GroupId = s.GetIntNoErr("group_id")
 				c.Flow.FlowLimit = int64(s.GetIntNoErr("flow_limit"))
 				c.RateLimit = s.GetIntNoErr("rate_limit")
 				c.MaxConn = s.GetIntNoErr("max_conn")

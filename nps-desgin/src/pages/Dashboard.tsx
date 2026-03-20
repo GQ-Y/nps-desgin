@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Sidebar } from '../components/Sidebar';
 import { Header } from '../components/Header';
 import { Card, DashboardSkeleton } from '../components/Shared';
@@ -6,13 +7,25 @@ import {
   PlusCircle,
   Settings2,
   Globe,
-  History,
   Activity,
   TrendingUp,
   AlertTriangle,
   CheckCircle2,
+  PieChart as PieChartIcon,
 } from 'lucide-react';
-import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip, LineChart, Line, XAxis, YAxis, CartesianGrid } from 'recharts';
+import {
+  PieChart,
+  Pie,
+  Cell,
+  ResponsiveContainer,
+  Legend,
+  Tooltip,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+} from 'recharts';
 import { getDashboard, type DashboardData } from '../api/client';
 
 function formatBytes(n: number): string {
@@ -22,7 +35,42 @@ function formatBytes(n: number): string {
   return n + ' B';
 }
 
+/** 隧道类型饼图配色（与设计 token 一致，环形分段） */
+const TUNNEL_PIE_COLORS = [
+  'var(--color-primary)',
+  'var(--color-primary-container)',
+  'var(--color-secondary)',
+  'var(--color-secondary-container)',
+  '#4d6ee8',
+  '#8fa8f5',
+  '#b8c9fa',
+];
+
+function TunnelTypeTooltip({
+  active,
+  payload,
+}: {
+  active?: boolean;
+  payload?: Array<{ name?: string; value?: number; payload?: { fill?: string } }>;
+}) {
+  if (!active || !payload?.length) return null;
+  const p = payload[0];
+  const name = p.name ?? '';
+  const value = Number(p.value ?? 0);
+  const fill = p.payload?.fill ?? 'var(--color-primary)';
+  return (
+    <div className="rounded-xl border border-outline-variant/25 bg-surface-container-lowest px-3 py-2.5 shadow-lg backdrop-blur-sm">
+      <div className="flex items-center gap-2">
+        <span className="h-2.5 w-2.5 shrink-0 rounded-full shadow-sm" style={{ backgroundColor: fill }} />
+        <span className="text-xs font-semibold text-on-surface">{name}</span>
+      </div>
+      <p className="mt-1 pl-4 text-lg font-bold tabular-nums text-primary">{value}</p>
+    </div>
+  );
+}
+
 export function Dashboard({ onNavigate, onLogout }: { onNavigate: (view: string) => void; onLogout?: () => void }) {
+  const { t } = useTranslation();
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -56,7 +104,7 @@ export function Dashboard({ onNavigate, onLogout }: { onNavigate: (view: string)
     <div className="min-h-screen bg-surface">
       <Sidebar currentView="dashboard" onNavigate={onNavigate} />
       <Header
-        breadcrumbs={[{ label: '工作台' }, { label: '系统概览' }]}
+        breadcrumbs={[{ labelKey: 'sidebar.dashboard', view: 'dashboard' }, { labelKey: 'dashboard.systemOverview' }]}
         onNavigate={onNavigate}
         onLogout={onLogout}
       />
@@ -73,22 +121,21 @@ export function Dashboard({ onNavigate, onLogout }: { onNavigate: (view: string)
           <div className="bg-alert-bg border border-warning/20 rounded-xl px-4 py-3 flex items-center justify-between mt-4">
             <div className="flex items-center gap-2 text-sm text-warning font-medium">
               <AlertTriangle size={16} />
-              <span>检测到 {offlineCount} 个离线客户端，请检查网络连接状态。</span>
+              <span>{t('dashboard.offlineAlert', { count: offlineCount })}</span>
             </div>
             <button
               onClick={() => onNavigate('clients')}
               className="text-sm text-primary font-semibold hover:underline transition-colors"
             >
-              处理
+              {t('common.handle')}
             </button>
           </div>
         )}
 
         <section className="flex flex-wrap gap-3 pb-2">
-          <QuickAction icon={PlusCircle} label="新增客户端" onClick={() => onNavigate('add-client')} />
-          <QuickAction icon={Settings2} label="客户端管理" onClick={() => onNavigate('clients')} />
-          <QuickAction icon={Globe} label="域名解析" onClick={() => onNavigate('domain')} />
-          <QuickAction icon={History} label="操作日志" />
+          <QuickAction icon={PlusCircle} label={t('dashboard.addClient')} onClick={() => onNavigate('add-client')} />
+          <QuickAction icon={Settings2} label={t('dashboard.clientManage')} onClick={() => onNavigate('clients')} />
+          <QuickAction icon={Globe} label={t('dashboard.domainResolve')} onClick={() => onNavigate('domain')} />
         </section>
 
         {loading ? (
@@ -97,42 +144,42 @@ export function Dashboard({ onNavigate, onLogout }: { onNavigate: (view: string)
           <>
             <section className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
               <KpiCard
-                title="连接端口"
+                title={t('dashboard.bridgePort')}
                 value={String(data?.p ?? '-')}
-                subtitle="桥接通信端口"
+                subtitle={t('dashboard.bridgeSubtitle')}
                 accent="border-l-primary"
               />
               <KpiCard
-                title="客户端总数"
+                title={t('dashboard.clientTotal')}
                 value={String(clientCount)}
                 subtitle={
                   <>
                     <CheckCircle2 size={12} className="inline mr-1" />
-                    已注册
+                    {t('dashboard.registered')}
                   </>
                 }
                 bgIcon={null}
               />
               <KpiCard
-                title="在线客户端"
+                title={t('dashboard.onlineClient')}
                 value={String(clientOnline)}
                 status="online"
-                subtitle={`${onlineRate}% 在线率`}
+                subtitle={t('dashboard.onlineRate', { rate: onlineRate })}
               />
               <KpiCard
-                title="TCP 连接数"
+                title={t('dashboard.tcpConn')}
                 value={tcpCount.toLocaleString()}
                 subtitle={
                   <span className="text-primary flex items-center gap-1">
                     <TrendingUp size={12} />
-                    连接中
+                    {t('dashboard.connecting')}
                   </span>
                 }
                 pattern={true}
               />
               <Card className="flex flex-col justify-between">
                 <div>
-                  <p className="text-xs font-medium text-on-surface-variant mb-1">隧道总数</p>
+                  <p className="text-xs font-medium text-on-surface-variant mb-1">{t('dashboard.tunnelTotal')}</p>
                   <h3 className="text-3xl font-bold tabular-nums text-on-surface leading-none">{(data?.tcpC ?? 0) + (data?.udpCount ?? 0) + (data?.socks5Count ?? 0) + (data?.httpProxyCount ?? 0) + (data?.secretCount ?? 0) + (data?.p2pCount ?? 0)}</h3>
                 </div>
                 <div className="w-full h-1.5 bg-surface-container-high rounded-full overflow-hidden mt-4">
@@ -140,13 +187,13 @@ export function Dashboard({ onNavigate, onLogout }: { onNavigate: (view: string)
                 </div>
               </Card>
               <KpiCard
-                title="离线 / 告警"
+                title={t('dashboard.offlineAlertTitle')}
                 value={String(offlineCount)}
                 valueColor="text-warning"
                 subtitle={
                   <span className="text-warning flex items-center gap-1">
                     <AlertTriangle size={12} />
-                    需关注
+                    {t('dashboard.needAttention')}
                   </span>
                 }
                 accent="border-l-warning"
@@ -156,28 +203,28 @@ export function Dashboard({ onNavigate, onLogout }: { onNavigate: (view: string)
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
               <Card className="lg:col-span-12" noPadding>
                 <div className="px-6 py-4 border-b border-outline-variant/15 flex items-center justify-between bg-surface-container-lowest">
-                  <h2 className="text-base font-bold text-on-surface">配置信息</h2>
+                  <h2 className="text-base font-bold text-on-surface">{t('dashboard.configInfo')}</h2>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-outline-variant/15 bg-surface-container-lowest">
                   <ConfigGroup
                     items={[
-                      { label: '桥接模式', value: String(data?.bridgeType ?? '-'), tabular: true },
-                      { label: 'HTTP 端口', value: String(data?.httpProxyPort ?? '-'), tabular: true },
-                      { label: 'HTTPS 端口', value: String(data?.httpsProxyPort ?? '-'), tabular: true },
+                      { label: t('dashboard.bridgeMode'), value: String(data?.bridgeType ?? '-'), tabular: true },
+                      { label: t('dashboard.httpPort'), value: String(data?.httpProxyPort ?? '-'), tabular: true },
+                      { label: t('dashboard.httpsPort'), value: String(data?.httpsProxyPort ?? '-'), tabular: true },
                     ]}
                   />
                   <ConfigGroup
                     items={[
-                      { label: 'IP 限制', value: String(data?.ipLimit ?? '-'), tabular: true },
-                      { label: '流量持久化', value: String(data?.flowStoreInterval ?? '-'), tabular: true },
-                      { label: '日志级别', value: String(data?.logLevel ?? '-'), tabular: true },
+                      { label: t('dashboard.ipLimit'), value: String(data?.ipLimit ?? '-'), tabular: true },
+                      { label: t('dashboard.flowStore'), value: String(data?.flowStoreInterval ?? '-'), tabular: true },
+                      { label: t('dashboard.logLevel'), value: String(data?.logLevel ?? '-'), tabular: true },
                     ]}
                   />
                   <ConfigGroup
                     items={[
-                      { label: 'P2P 端口', value: String(data?.p2pPort ?? '-'), tabular: true },
-                      { label: '服务端 IP', value: String(data?.serverIp ?? '-'), tabular: true },
-                      { label: '版本', value: String(data?.version ?? '-'), tabular: true },
+                      { label: t('dashboard.p2pPort'), value: String(data?.p2pPort ?? '-'), tabular: true },
+                      { label: t('dashboard.serverIp'), value: String(data?.serverIp ?? '-'), tabular: true },
+                      { label: t('dashboard.version'), value: String(data?.version ?? '-'), tabular: true },
                     ]}
                   />
                 </div>
@@ -187,26 +234,26 @@ export function Dashboard({ onNavigate, onLogout }: { onNavigate: (view: string)
                 <div className="flex items-center justify-between mb-8">
                   <h2 className="text-base font-bold text-on-surface flex items-center gap-2">
                     <Activity size={18} className="text-primary" />
-                    资源监控
+                    {t('dashboard.resourceMonitor')}
                   </h2>
-                  <span className="text-xs text-on-surface-variant">自动刷新 5s</span>
+                  <span className="text-xs text-on-surface-variant">{t('dashboard.autoRefresh')}</span>
                 </div>
                 <div className="space-y-8">
                   <ResourceBar
-                    label="CPU 使用率"
+                    label={t('dashboard.cpuUsage')}
                     sub=""
                     value={`${data?.cpu ?? 0}%`}
                     color="bg-primary"
                   />
                   <ResourceBar
-                    label="内存"
-                    sub={`虚拟内存 ${data?.virtual_mem ?? 0}%`}
+                    label={t('dashboard.memory')}
+                    sub={t('dashboard.virtualMem', { p: data?.virtual_mem ?? 0 })}
                     value={`${data?.virtual_mem ?? 0}%`}
                     color="bg-primary"
                   />
                   <ResourceBar
-                    label="流量"
-                    sub={`入 ${data?.inletFlowCount ?? 0} / 出 ${data?.exportFlowCount ?? 0} 字节`}
+                    label={t('dashboard.flow')}
+                    sub={t('dashboard.flowInOut', { in: data?.inletFlowCount ?? 0, out: data?.exportFlowCount ?? 0 })}
                     value={`${data?.io_send ?? 0} / ${data?.io_recv ?? 0}`}
                     color="bg-secondary-container"
                     valueColor="text-on-surface"
@@ -216,66 +263,123 @@ export function Dashboard({ onNavigate, onLogout }: { onNavigate: (view: string)
 
               <Card className="lg:col-span-6">
                 <div className="flex items-center justify-between mb-8">
-                  <h2 className="text-base font-bold text-on-surface">流量统计</h2>
+                  <h2 className="text-base font-bold text-on-surface">{t('dashboard.flowStats')}</h2>
                 </div>
                 <div className="h-[200px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={[
-                          { name: '入站流量', value: data?.inletFlowCount ?? 0 },
-                          { name: '出站流量', value: data?.exportFlowCount ?? 0 },
-                        ]}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={50}
-                        outerRadius={80}
-                        paddingAngle={2}
-                        dataKey="value"
-                        label={({ name, value }) => `${name}: ${formatBytes(value)}`}
-                      >
-                        <Cell fill="var(--color-primary)" />
-                        <Cell fill="var(--color-secondary-container)" />
-                      </Pie>
-                      <Tooltip formatter={(v: number) => formatBytes(v)} />
-                      <Legend />
-                    </PieChart>
-                  </ResponsiveContainer>
+                  {(() => {
+                    const flowData = [
+                          { name: t('dashboard.inletFlow'), value: data?.inletFlowCount ?? 0 },
+                          { name: t('dashboard.exportFlow'), value: data?.exportFlowCount ?? 0 },
+                    ].filter((d) => d.value > 0);
+                    return flowData.length > 0 ? (
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie
+                            data={flowData}
+                            cx="50%"
+                            cy="50%"
+                            innerRadius={50}
+                            outerRadius={80}
+                            paddingAngle={2}
+                            dataKey="value"
+                            label={({ name, value }) => `${name}: ${formatBytes(value)}`}
+                          >
+                            {flowData.map((_, i) => (
+                              <Cell key={i} fill={i === 0 ? 'var(--color-primary)' : 'var(--color-secondary-container)'} />
+                            ))}
+                          </Pie>
+                        <Tooltip formatter={(v: number) => formatBytes(v)} />
+                        <Legend />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <div className="h-full flex items-center justify-center text-on-surface-variant text-sm">
+                      {t('dashboard.noFlowData')}
+                    </div>
+                  );
+                  })()}
                 </div>
               </Card>
 
-              <Card className="lg:col-span-6">
-                <div className="flex items-center justify-between mb-8">
-                  <h2 className="text-base font-bold text-on-surface">隧道类型分布</h2>
+              <Card className="lg:col-span-6 overflow-hidden">
+                <div className="mb-4 flex items-center justify-between">
+                  <h2 className="flex items-center gap-2 text-base font-bold text-on-surface">
+                    <PieChartIcon size={18} className="shrink-0 text-primary" aria-hidden />
+                    {t('dashboard.tunnelTypeDist')}
+                  </h2>
                 </div>
-                <div className="h-[200px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={[
-                          { name: '域名解析', value: hostCount },
-                          { name: 'TCP', value: data?.tcpC ?? 0 },
-                          { name: 'UDP', value: data?.udpCount ?? 0 },
-                          { name: 'HTTP 代理', value: data?.httpProxyCount ?? 0 },
-                          { name: 'SOCKS5', value: data?.socks5Count ?? 0 },
-                          { name: 'Secret', value: data?.secretCount ?? 0 },
-                          { name: 'P2P', value: data?.p2pCount ?? 0 },
-                        ].filter((d) => d.value > 0)}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={50}
-                        outerRadius={80}
-                        paddingAngle={2}
-                        dataKey="value"
-                      >
-                        {['#3370FF', '#4E83FD', '#85A9FF', '#BEDAFF', '#475c99', '#a5b9fd', '#8F959E'].map((c, i) => (
-                          <Cell key={i} fill={c} />
-                        ))}
-                      </Pie>
-                      <Tooltip />
-                      <Legend />
-                    </PieChart>
-                  </ResponsiveContainer>
+                <div className="relative -mx-1 rounded-2xl bg-gradient-to-b from-primary-fixed/30 via-transparent to-transparent px-1 pb-1">
+                  {(() => {
+                    const tunnelPieData = [
+                      { name: t('sidebar.domain'), value: hostCount },
+                      { name: t('sidebar.tcp'), value: data?.tcpC ?? 0 },
+                      { name: t('sidebar.udp'), value: data?.udpCount ?? 0 },
+                      { name: t('sidebar.httpProxy'), value: data?.httpProxyCount ?? 0 },
+                      { name: t('sidebar.socks5'), value: data?.socks5Count ?? 0 },
+                      { name: t('sidebar.secretTunnel'), value: data?.secretCount ?? 0 },
+                      { name: t('sidebar.p2p'), value: data?.p2pCount ?? 0 },
+                    ].filter((d) => d.value > 0);
+                    const sliceTotal = tunnelPieData.reduce((s, d) => s + d.value, 0);
+                    return tunnelPieData.length > 0 ? (
+                      <div className="relative h-[220px]">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <PieChart margin={{ top: 4, right: 4, left: 4, bottom: 0 }}>
+                            <Pie
+                              data={tunnelPieData}
+                              cx="50%"
+                              cy="46%"
+                              innerRadius={52}
+                              outerRadius={82}
+                              paddingAngle={3}
+                              cornerRadius={5}
+                              stroke="var(--color-surface-container-lowest)"
+                              strokeWidth={2}
+                              dataKey="value"
+                              nameKey="name"
+                            >
+                              {tunnelPieData.map((_, i) => (
+                                <Cell key={`tunnel-${tunnelPieData[i].name}-${i}`} fill={TUNNEL_PIE_COLORS[i % TUNNEL_PIE_COLORS.length]} />
+                              ))}
+                            </Pie>
+                            <Tooltip content={<TunnelTypeTooltip />} cursor={{ fill: 'transparent' }} />
+                            <Legend
+                              verticalAlign="bottom"
+                              align="center"
+                              layout="horizontal"
+                              iconType="circle"
+                              iconSize={7}
+                              wrapperStyle={{
+                                paddingTop: 4,
+                                fontSize: 11,
+                                lineHeight: 1.35,
+                              }}
+                              formatter={(value) => (
+                                <span className="text-on-surface-variant" style={{ fontSize: 11 }}>
+                                  {value}
+                                </span>
+                              )}
+                            />
+                          </PieChart>
+                        </ResponsiveContainer>
+                        <div
+                          className="pointer-events-none absolute inset-0 flex items-center justify-center pb-8"
+                          aria-hidden
+                        >
+                          <div className="text-center">
+                            <p className="text-[10px] font-semibold uppercase tracking-wide text-on-surface-variant">
+                              {t('dashboard.tunnelTotal')}
+                            </p>
+                            <p className="text-2xl font-bold tabular-nums leading-tight text-on-surface">{sliceTotal}</p>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex h-[220px] flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-outline-variant/40 bg-surface-container-low/40 px-4 text-center">
+                        <PieChartIcon size={32} className="text-outline/50" aria-hidden />
+                        <p className="text-sm text-on-surface-variant">{t('dashboard.noTunnelTypeData')}</p>
+                      </div>
+                    );
+                  })()}
                 </div>
               </Card>
             </div>
@@ -283,7 +387,7 @@ export function Dashboard({ onNavigate, onLogout }: { onNavigate: (view: string)
             {data?.system_info_display && (data?.sys1 || data?.sys2) && (
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
                 <Card>
-                  <h3 className="text-base font-bold text-on-surface mb-4">负载</h3>
+                  <h3 className="text-base font-bold text-on-surface mb-4">{t('dashboard.load')}</h3>
                   <div className="h-[200px]">
                     <ResponsiveContainer width="100%" height="100%">
                       <LineChart data={[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((i) => {
@@ -317,7 +421,7 @@ export function Dashboard({ onNavigate, onLogout }: { onNavigate: (view: string)
                   </div>
                 </Card>
                 <Card>
-                  <h3 className="text-base font-bold text-on-surface mb-4">内存</h3>
+                  <h3 className="text-base font-bold text-on-surface mb-4">{t('dashboard.memory')}</h3>
                   <div className="h-[200px]">
                     <ResponsiveContainer width="100%" height="100%">
                       <LineChart data={[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((i) => {
@@ -334,19 +438,19 @@ export function Dashboard({ onNavigate, onLogout }: { onNavigate: (view: string)
                   </div>
                 </Card>
                 <Card>
-                  <h3 className="text-base font-bold text-on-surface mb-4">带宽</h3>
+                  <h3 className="text-base font-bold text-on-surface mb-4">{t('dashboard.bandwidth')}</h3>
                   <div className="h-[200px]">
                     <ResponsiveContainer width="100%" height="100%">
                       <LineChart data={[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((i) => {
                         const s = data[`sys${i}`] as { time?: string; io_send?: number; io_recv?: number } | undefined;
-                        return { time: s?.time ?? '', 入: s?.io_recv ?? 0, 出: s?.io_send ?? 0 };
+                        return { time: s?.time ?? '', in: s?.io_recv ?? 0, out: s?.io_send ?? 0 };
                       })}>
                         <CartesianGrid strokeDasharray="3 3" stroke="var(--color-outline-variant)" />
                         <XAxis dataKey="time" tick={{ fontSize: 10 }} />
                         <YAxis tick={{ fontSize: 10 }} tickFormatter={(v) => formatBytes(v)} />
                         <Tooltip formatter={(v: number) => formatBytes(v)} />
-                        <Line type="monotone" dataKey="入" stroke="var(--color-primary)" strokeWidth={2} dot={false} />
-                        <Line type="monotone" dataKey="出" stroke="var(--color-secondary-container)" strokeWidth={2} dot={false} />
+                        <Line type="monotone" dataKey="in" name={t('dashboard.in')} stroke="var(--color-primary)" strokeWidth={2} dot={false} />
+                        <Line type="monotone" dataKey="out" name={t('dashboard.out')} stroke="var(--color-secondary-container)" strokeWidth={2} dot={false} />
                       </LineChart>
                     </ResponsiveContainer>
                   </div>

@@ -26,6 +26,7 @@ var (
 func GetDb() *DbUtils {
 	once.Do(func() {
 		jsonDb := NewJsonDb(common.GetRunPath())
+		jsonDb.LoadGroupsFromJsonFile()
 		jsonDb.LoadClientFromJsonFile()
 		jsonDb.LoadTaskFromJsonFile()
 		jsonDb.LoadHostFromJsonFile()
@@ -46,7 +47,7 @@ func GetMapKeys(m sync.Map, isSort bool, sortKey, order string) (keys []int) {
 	return
 }
 
-func (s *DbUtils) GetClientList(start, length int, search, sort, order string, clientId int) ([]*Client, int) {
+func (s *DbUtils) GetClientList(start, length int, search, sort, order string, clientId int, groupId int) ([]*Client, int) {
 	list := make([]*Client, 0)
 	var cnt int
 	keys := GetMapKeys(s.JsonDb.Clients, true, sort, order)
@@ -57,6 +58,13 @@ func (s *DbUtils) GetClientList(start, length int, search, sort, order string, c
 				continue
 			}
 			if clientId != 0 && clientId != v.Id {
+				continue
+			}
+			if groupId == -1 {
+				if v.GroupId != 0 {
+					continue
+				}
+			} else if groupId != 0 && v.GroupId != groupId {
 				continue
 			}
 			if search != "" && !(v.Id == common.GetIntNoErrByStr(search) || strings.Contains(v.VerifyKey, search) || strings.Contains(v.Remark, search)) {
@@ -260,6 +268,111 @@ func (s *DbUtils) VerifyUserName(username string, id int) (res bool) {
 		return true
 	})
 	return res
+}
+
+func (s *DbUtils) GetGroupTree() []*ClientGroup {
+	list := make([]*ClientGroup, 0)
+	s.JsonDb.Groups.Range(func(key, value interface{}) bool {
+		list = append(list, value.(*ClientGroup))
+		return true
+	})
+	sort.Slice(list, func(i, j int) bool {
+		if list[i].ParentId != list[j].ParentId {
+			return list[i].ParentId < list[j].ParentId
+		}
+		return list[i].SortOrder < list[j].SortOrder
+	})
+	return list
+}
+
+func (s *DbUtils) NewGroup(g *ClientGroup) error {
+	if g.Id == 0 {
+		g.Id = int(s.JsonDb.GetGroupId())
+	}
+	s.JsonDb.Groups.Store(g.Id, g)
+	s.JsonDb.StoreGroupsToJsonFile()
+	return nil
+}
+
+func (s *DbUtils) GetGroup(id int) (*ClientGroup, error) {
+	if v, ok := s.JsonDb.Groups.Load(id); ok {
+		return v.(*ClientGroup), nil
+	}
+	return nil, errors.New("group not found")
+}
+
+func (s *DbUtils) UpdateGroup(g *ClientGroup) error {
+	s.JsonDb.Groups.Store(g.Id, g)
+	s.JsonDb.StoreGroupsToJsonFile()
+	return nil
+}
+
+func (s *DbUtils) DelGroup(id int) error {
+	// 将属于该分组的客户端移到未分组(0)
+	s.JsonDb.Clients.Range(func(key, value interface{}) bool {
+		c := value.(*Client)
+		if c.GroupId == id {
+			c.GroupId = 0
+			s.JsonDb.Clients.Store(c.Id, c)
+		}
+		return true
+	})
+	// 将子分组移到父分组或根
+	if g, err := s.GetGroup(id); err == nil {
+		parentId := g.ParentId
+		s.JsonDb.Groups.Range(func(key, value interface{}) bool {
+			child := value.(*ClientGroup)
+			if child.ParentId == id {
+				child.ParentId = parentId
+				s.JsonDb.Groups.Store(child.Id, child)
+			}
+			return true
+		})
+	}
+	s.JsonDb.Groups.Delete(id)
+	s.JsonDb.StoreGroupsToJsonFile()
+	s.JsonDb.StoreClientsToJsonFile()
+	return nil
+}
+
+func (s *DbUtils) MoveClientToGroup(clientId, groupId int) error {
+	c, err := s.GetClient(clientId)
+	if err != nil {
+		return err
+	}
+	c.GroupId = groupId
+	s.JsonDb.Clients.Store(c.Id, c)
+	s.JsonDb.StoreClientsToJsonFile()
+	return nil
+}
+
+// MoveGroup 将分组移动到新父级，子分组一并移动
+func (s *DbUtils) MoveGroup(id, newParentId int) error {
+	if id == newParentId {
+		return errors.New("cannot move to self")
+	}
+	g, err := s.GetGroup(id)
+	if err != nil {
+		return err
+	}
+	// 不能移动到自己的后代（会形成环）
+	if newParentId != 0 {
+		ancestor := newParentId
+		for ancestor != 0 {
+			if ancestor == id {
+				return errors.New("cannot move to descendant")
+			}
+			p, err := s.GetGroup(ancestor)
+			if err != nil {
+				break
+			}
+			ancestor = p.ParentId
+		}
+	}
+	g.ParentId = newParentId
+	s.JsonDb.Groups.Store(g.Id, g)
+	s.JsonDb.StoreGroupsToJsonFile()
+	return nil
 }
 
 func (s *DbUtils) UpdateClient(t *Client) error {

@@ -1,15 +1,30 @@
-import React from 'react';
+import React, { useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ChevronRight, Bell, Globe2, LogOut } from 'lucide-react';
 import { logout } from '../api/client';
+import { NotificationPopover } from './NotificationPopover';
+import i18n from '../i18n';
 
-interface HeaderProps {
-  breadcrumbs: { label: string; view?: string }[];
-  onNavigate: (view: string) => void;
-  onLogout?: () => void;
-  showTabs?: boolean;
+interface Breadcrumb {
+  label?: string;
+  labelKey?: string;
+  view?: string;
 }
 
-export function Header({ breadcrumbs, onNavigate, onLogout, showTabs = false }: HeaderProps) {
+interface HeaderProps {
+  breadcrumbs: Breadcrumb[];
+  onNavigate: (view: string) => void;
+  onLogout?: () => void;
+}
+
+export function Header({ breadcrumbs, onNavigate, onLogout }: HeaderProps) {
+  const { t } = useTranslation();
+  const [notifOpen, setNotifOpen] = useState(false);
+  const bellRef = useRef<HTMLButtonElement>(null);
+  const isDashboard = breadcrumbs[0]?.view === 'dashboard';
+
+  const getLabel = (crumb: Breadcrumb) => (crumb.labelKey ? t(crumb.labelKey) : crumb.label ?? '');
+
   const handleLogout = async () => {
     try {
       await logout();
@@ -29,40 +44,44 @@ export function Header({ breadcrumbs, onNavigate, onLogout, showTabs = false }: 
                 className={`${index === breadcrumbs.length - 1 ? 'text-on-surface font-semibold' : 'text-on-surface-variant cursor-pointer hover:text-primary transition-colors'}`}
                 onClick={() => crumb.view && onNavigate(crumb.view)}
               >
-                {crumb.label}
+                {getLabel(crumb)}
               </span>
             </React.Fragment>
           ))}
-          {breadcrumbs[0].label === '工作台' && (
+          {isDashboard && (
             <span className="ml-4 px-2 py-0.5 rounded text-[10px] font-bold bg-primary-fixed text-primary uppercase tracking-tighter">
-              生产环境
+              {t('header.production')}
             </span>
           )}
         </div>
       </div>
 
       <div className="flex items-center gap-6">
-        {showTabs && (
-          <div className="flex items-center gap-6 border-r border-outline-variant/30 pr-6 h-14">
-            <button
-              onClick={() => onNavigate('dashboard')}
-              className="text-on-surface-variant hover:text-primary text-sm font-medium transition-all"
-            >
-              工作台
-            </button>
-            <button className="text-primary font-medium text-sm border-b-2 border-primary h-full flex items-center transition-all">
-              客户端列表
-            </button>
-          </div>
-        )}
-
         <div className="flex items-center gap-4">
-          {breadcrumbs[0].label === '工作台' && (
-            <button className="text-outline hover:text-primary transition-colors relative">
-              <Bell size={18} />
-            </button>
+          {isDashboard && (
+            <div className="relative flex h-9 w-9 items-center justify-center">
+              <button
+                ref={bellRef}
+                type="button"
+                onClick={() => setNotifOpen((o) => !o)}
+                className="inline-flex h-9 w-9 items-center justify-center text-outline hover:text-primary transition-colors"
+                title={t('header.notifications')}
+              >
+                <Bell size={18} />
+              </button>
+              <NotificationPopover
+                open={notifOpen}
+                onClose={() => setNotifOpen(false)}
+                anchorRef={bellRef}
+              />
+            </div>
           )}
-          <button className="text-outline hover:text-primary transition-colors">
+          <button
+            type="button"
+            onClick={() => i18n.changeLanguage(i18n.language === 'zh-CN' ? 'en' : 'zh-CN')}
+            className="inline-flex h-9 w-9 shrink-0 items-center justify-center text-outline hover:text-primary transition-colors"
+            title={i18n.language === 'zh-CN' ? 'English' : '中文'}
+          >
             <Globe2 size={18} />
           </button>
 
@@ -70,17 +89,18 @@ export function Header({ breadcrumbs, onNavigate, onLogout, showTabs = false }: 
             <div className="w-7 h-7 rounded-full bg-primary-fixed flex items-center justify-center text-primary overflow-hidden">
               <img
                 src="https://api.dicebear.com/7.x/avataaars/svg?seed=Admin&backgroundColor=dbe1ff"
-                alt="用户"
+                alt={t('header.user')}
                 className="w-full h-full object-cover"
               />
             </div>
-            <span className="text-sm font-medium text-on-surface group-hover:text-primary transition-colors">管理员</span>
+            <span className="text-sm font-medium text-on-surface group-hover:text-primary transition-colors">{t('header.admin')}</span>
           </div>
 
           <button
+            type="button"
             onClick={handleLogout}
-            className="text-outline hover:text-error transition-colors ml-2"
-            title="退出登录"
+            className="inline-flex h-9 w-9 shrink-0 items-center justify-center text-outline hover:text-error transition-colors ml-2"
+            title={t('header.logout')}
           >
             <LogOut size={18} />
           </button>

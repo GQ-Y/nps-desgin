@@ -1,6 +1,6 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { Terminal } from 'lucide-react';
-import { motion } from 'motion/react';
 import {
   IconDashboard,
   IconClients,
@@ -20,53 +20,48 @@ interface SidebarProps {
   onNavigate: (view: string) => void;
 }
 
-type NavItem = { id: string; label: string; Icon: React.ComponentType<{ active?: boolean }> };
+type NavItem = { id: string; labelKey: string; Icon: React.ComponentType<{ active?: boolean }> };
 
 export function Sidebar({ currentView, onNavigate }: SidebarProps) {
+  const { t } = useTranslation();
   const navItems: NavItem[] = [
-    { id: 'dashboard', label: '工作台', Icon: IconDashboard },
-    { id: 'clients', label: '客户端', Icon: IconClients },
-    { id: 'domain', label: '域名解析', Icon: IconDomain },
+    { id: 'dashboard', labelKey: 'sidebar.dashboard', Icon: IconDashboard },
+    { id: 'clients', labelKey: 'sidebar.clients', Icon: IconClients },
+    { id: 'domain', labelKey: 'sidebar.domain', Icon: IconDomain },
   ];
 
   const protocolItems: NavItem[] = [
-    { id: 'tcp', label: 'TCP', Icon: IconTcp },
-    { id: 'udp', label: 'UDP', Icon: IconUdp },
-    { id: 'http', label: 'HTTP 代理', Icon: IconHttp },
-    { id: 'socks5', label: 'SOCKS5', Icon: IconSocks5 },
+    { id: 'tcp', labelKey: 'sidebar.tcp', Icon: IconTcp },
+    { id: 'udp', labelKey: 'sidebar.udp', Icon: IconUdp },
+    { id: 'http', labelKey: 'sidebar.httpProxy', Icon: IconHttp },
+    { id: 'socks5', labelKey: 'sidebar.socks5', Icon: IconSocks5 },
   ];
 
   const advancedItems: NavItem[] = [
-    { id: 'tunnel', label: 'Secret 隧道', Icon: IconSecret },
-    { id: 'p2p', label: 'P2P', Icon: IconP2p },
-    { id: 'file', label: '文件服务', Icon: IconFile },
+    { id: 'tunnel', labelKey: 'sidebar.secretTunnel', Icon: IconSecret },
+    { id: 'p2p', labelKey: 'sidebar.p2p', Icon: IconP2p },
+    { id: 'file', labelKey: 'sidebar.fileService', Icon: IconFile },
   ];
 
   const NavButton = ({ item, isActive }: { item: NavItem; isActive: boolean }) => {
     const { Icon } = item;
     return (
-      <motion.button
+      <button
         onClick={() => onNavigate(item.id)}
-        className={`relative w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 text-sm font-medium ${
+        className={`relative w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors duration-150 text-sm font-medium ${
           isActive
             ? 'bg-primary/10 text-primary'
             : 'text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface'
         }`}
-        whileHover={{ x: 2 }}
-        whileTap={{ scale: 0.98 }}
       >
         {isActive && (
-          <motion.div
-            layoutId="sidebar-active"
-            className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 bg-primary rounded-r-full"
-            transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-          />
+          <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 bg-primary rounded-r-full" />
         )}
-        <span className={`shrink-0 transition-colors duration-200 ${isActive ? 'text-primary' : 'text-outline'}`}>
+        <span className={`shrink-0 transition-colors duration-150 ${isActive ? 'text-primary' : 'text-outline'}`}>
           <Icon active={isActive} />
         </span>
-        <span className={isActive ? 'font-semibold' : ''}>{item.label}</span>
-      </motion.button>
+        <span className={isActive ? 'font-semibold' : ''}>{t(item.labelKey)}</span>
+      </button>
     );
   };
 
@@ -77,8 +72,8 @@ export function Sidebar({ currentView, onNavigate }: SidebarProps) {
           <Terminal size={18} />
         </div>
         <div>
-          <h1 className="text-base font-bold text-on-surface leading-tight">NPS 管理端</h1>
-          <p className="text-[10px] text-outline font-bold uppercase tracking-widest mt-0.5">内网穿透</p>
+          <h1 className="text-base font-bold text-on-surface leading-tight">{t('sidebar.npsAdmin')}</h1>
+          <p className="text-[10px] text-outline font-bold uppercase tracking-widest mt-0.5">{t('sidebar.intranetPenetration')}</p>
         </div>
       </div>
 
@@ -96,14 +91,14 @@ export function Sidebar({ currentView, onNavigate }: SidebarProps) {
         ))}
 
         <div className="pt-6 pb-2 px-3">
-          <p className="text-[10px] font-bold text-outline uppercase tracking-widest">协议类型</p>
+          <p className="text-[10px] font-bold text-outline uppercase tracking-widest">{t('sidebar.protocolType')}</p>
         </div>
         {protocolItems.map((item) => (
           <NavButton key={item.id} item={item} isActive={currentView === item.id} />
         ))}
 
         <div className="pt-6 pb-2 px-3">
-          <p className="text-[10px] font-bold text-outline uppercase tracking-widest">高级</p>
+          <p className="text-[10px] font-bold text-outline uppercase tracking-widest">{t('sidebar.advanced')}</p>
         </div>
         {advancedItems.map((item) => (
           <NavButton key={item.id} item={item} isActive={currentView === item.id} />
@@ -112,7 +107,7 @@ export function Sidebar({ currentView, onNavigate }: SidebarProps) {
 
       <div className="mt-auto pt-4 border-t border-outline-variant/20">
         <NavButton
-          item={{ id: 'help', label: '帮助', Icon: IconHelp }}
+          item={{ id: 'help', labelKey: 'sidebar.help', Icon: IconHelp }}
           isActive={currentView === 'help'}
         />
       </div>

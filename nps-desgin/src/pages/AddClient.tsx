@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Sidebar } from '../components/Sidebar';
 import { Header } from '../components/Header';
 import { Card, PageTransition } from '../components/Shared';
 import { Input, Select, PasswordInput } from '../components/ui';
 import { RefreshCw } from 'lucide-react';
-import { getDashboard } from '../api/client';
+import { getDashboard, getGroups, type ClientGroup } from '../api/client';
+import { GroupSelect } from '../components/GroupSelect';
 
 type Config = {
   allow_flow_limit?: boolean;
@@ -15,6 +17,7 @@ type Config = {
 };
 
 export function AddClient({ onNavigate, onLogout }: { onNavigate: (view: string) => void; onLogout?: () => void }) {
+  const { t } = useTranslation();
   const [config, setConfig] = useState<Config>({});
   const [remark, setRemark] = useState('');
   const [vkey, setVkey] = useState('');
@@ -29,11 +32,16 @@ export function AddClient({ onNavigate, onLogout }: { onNavigate: (view: string)
   const [rateLimit, setRateLimit] = useState(0);
   const [maxConn, setMaxConn] = useState(0);
   const [maxTunnel, setMaxTunnel] = useState(0);
+  const [groupId, setGroupId] = useState(0);
+  const [groups, setGroups] = useState<ClientGroup[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
     getDashboard().then((d) => setConfig(d as Config)).catch(() => {});
+  }, []);
+  useEffect(() => {
+    getGroups().then(setGroups).catch(() => {});
   }, []);
 
   const generateVkey = () => {
@@ -60,6 +68,7 @@ export function AddClient({ onNavigate, onLogout }: { onNavigate: (view: string)
       const res = await addClient({
         vkey: key,
         remark: remark || undefined,
+        group_id: groupId || undefined,
         u: u || undefined,
         p: p || undefined,
         web_username: webUsername || undefined,
@@ -75,10 +84,10 @@ export function AddClient({ onNavigate, onLogout }: { onNavigate: (view: string)
       if (res.status === 1) {
         onNavigate('clients');
       } else {
-        setError(res.msg || '添加失败');
+        setError(res.msg || t('client.addFailed'));
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : '添加失败');
+      setError(err instanceof Error ? err.message : t('client.addFailed'));
     } finally {
       setLoading(false);
     }
@@ -88,17 +97,16 @@ export function AddClient({ onNavigate, onLogout }: { onNavigate: (view: string)
     <div className="min-h-screen bg-surface pb-24">
       <Sidebar currentView="add-client" onNavigate={onNavigate} />
       <Header
-        breadcrumbs={[{ label: '客户端', view: 'clients' }, { label: '新增客户端' }]}
+        breadcrumbs={[{ labelKey: 'sidebar.clients', view: 'clients' }, { labelKey: 'client.addClient' }]}
         onNavigate={onNavigate}
         onLogout={onLogout}
-        showTabs={true}
       />
 
       <main className="ml-64 pt-20 px-10 pb-10 max-w-5xl mx-auto">
         <PageTransition>
           <div className="mb-8">
-            <h2 className="text-2xl font-bold text-on-surface tracking-tight">客户端配置</h2>
-            <p className="text-on-surface-variant text-sm mt-1">配置客户端的备注、验证密钥及安全约束。</p>
+            <h2 className="text-2xl font-bold text-on-surface tracking-tight">{t('client.clientConfig')}</h2>
+            <p className="text-on-surface-variant text-sm mt-1">{t('client.clientConfigDesc')}</p>
           </div>
 
           <form id="add-client-form" onSubmit={handleSubmit} className="space-y-8">
@@ -109,50 +117,57 @@ export function AddClient({ onNavigate, onLogout }: { onNavigate: (view: string)
             )}
 
             <Card>
-              <SectionHeader title="基本配置" />
+              <SectionHeader title={t('client.basicConfig')} />
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <GroupSelect
+                  groups={groups}
+                  value={groupId}
+                  onChange={setGroupId}
+                  label={t('client.group')}
+                  className="col-span-2"
+                />
                 <Input
-                  label="备注"
+                  label={t('client.remark')}
                   value={remark}
                   onChange={(e) => setRemark(e.target.value)}
-                  placeholder="例如：生产环境-API 服务器"
+                  placeholder={t('client.remarkPlaceholder')}
                   containerClassName="col-span-2"
                 />
                 <Input
-                  label="Basic 认证用户名"
+                  label={t('client.basicAuthUser')}
                   value={u}
                   onChange={(e) => setU(e.target.value)}
-                  placeholder="仅代理时使用"
+                  placeholder={t('client.proxyOnly')}
                 />
                 <PasswordInput
-                  label="Basic 认证密码"
+                  label={t('client.basicAuthPass')}
                   value={p}
                   onChange={(e) => setP(e.target.value)}
-                  placeholder="仅代理时使用"
+                  placeholder={t('client.proxyOnly')}
                 />
                 {config.allow_user_login && (
                   <>
                     <Input
-                      label="Web 登录用户名"
+                      label={t('client.webLoginUser')}
                       value={webUsername}
                       onChange={(e) => setWebUsername(e.target.value)}
-                      placeholder="可选"
+                      placeholder={t('common.optional')}
                     />
                     <PasswordInput
-                      label="Web 登录密码"
+                      label={t('client.webLoginPass')}
                       value={webPassword}
                       onChange={(e) => setWebPassword(e.target.value)}
-                      placeholder="可选"
+                      placeholder={t('common.optional')}
                     />
                   </>
                 )}
                 <div className="col-span-2">
-                  <label className="text-sm font-semibold mb-1.5 block text-on-surface">验证密钥</label>
+                  <label className="text-sm font-semibold mb-1.5 block text-on-surface">{t('client.verifyKeyLabel')}</label>
                   <div className="flex gap-3">
                     <Input
                       value={vkey}
                       onChange={(e) => setVkey(e.target.value)}
-                      placeholder="留空则自动生成"
+                      placeholder={t('client.verifyKeyPlaceholder')}
                       containerClassName="flex-1 min-w-0"
                       inputClassName="tabular-nums font-mono"
                     />
@@ -162,36 +177,36 @@ export function AddClient({ onNavigate, onLogout }: { onNavigate: (view: string)
                       className="bg-primary-fixed text-on-primary-fixed px-5 rounded-xl text-sm font-bold hover:bg-primary-fixed-dim transition-colors flex items-center gap-2 shrink-0"
                     >
                       <RefreshCw size={16} />
-                      生成
+                      {t('client.generate')}
                     </button>
                   </div>
                 </div>
                 <Select
-                  label="仅允许配置连接"
+                  label={t('client.configConnLabel')}
                   value={configConnAllow ? '1' : '0'}
                   onChange={(v) => setConfigConnAllow(v === '1')}
                   options={[
-                    { value: '0', label: '否（动态模式）' },
-                    { value: '1', label: '是（高安全）' },
+                    { value: '0', label: t('client.configConnNo') },
+                    { value: '1', label: t('client.configConnYes') },
                   ]}
                   className="col-span-2"
                 />
                 <Select
-                  label="压缩"
+                  label={t('client.compress')}
                   value={compress ? '1' : '0'}
                   onChange={(v) => setCompress(v === '1')}
                   options={[
-                    { value: '0', label: '否' },
-                    { value: '1', label: '是' },
+                    { value: '0', label: t('common.no') },
+                    { value: '1', label: t('common.yes') },
                   ]}
                 />
                 <Select
-                  label="加密"
+                  label={t('client.encrypt')}
                   value={crypt ? '1' : '0'}
                   onChange={(v) => setCrypt(v === '1')}
                   options={[
-                    { value: '0', label: '否' },
-                    { value: '1', label: '是' },
+                    { value: '0', label: t('common.no') },
+                    { value: '1', label: t('common.yes') },
                   ]}
                 />
               </div>
@@ -199,13 +214,13 @@ export function AddClient({ onNavigate, onLogout }: { onNavigate: (view: string)
 
             <div className="bg-surface-container rounded-2xl border border-outline-variant/15 overflow-hidden">
               <div className="p-6">
-                <h3 className="text-lg font-bold text-secondary mb-4">高级限制（可选）</h3>
+                <h3 className="text-lg font-bold text-secondary mb-4">{t('client.advancedLimitTitle')}</h3>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   {config.allow_flow_limit && (
                     <Input
                       type="number"
-                      label="流量限制 (MB)"
-                      placeholder="0 = 不限"
+                      label={t('client.flowLimitMb')}
+                      placeholder={t('client.flowLimitPlaceholder')}
                       value={flowLimit || ''}
                       onChange={(e) => setFlowLimit(parseInt(e.target.value, 10) || 0)}
                     />
@@ -213,8 +228,8 @@ export function AddClient({ onNavigate, onLogout }: { onNavigate: (view: string)
                   {config.allow_rate_limit && (
                     <Input
                       type="number"
-                      label="速度限制 (KB/s)"
-                      placeholder="0 = 不限"
+                      label={t('client.speedLimit')}
+                      placeholder={t('client.rateLimitPlaceholder')}
                       value={rateLimit || ''}
                       onChange={(e) => setRateLimit(parseInt(e.target.value, 10) || 0)}
                     />
@@ -222,8 +237,8 @@ export function AddClient({ onNavigate, onLogout }: { onNavigate: (view: string)
                   {config.allow_connection_num_limit && (
                     <Input
                       type="number"
-                      label="最大连接数"
-                      placeholder="1000"
+                      label={t('client.maxConnNum')}
+                      placeholder={t('client.maxConnPlaceholder')}
                       value={maxConn || ''}
                       onChange={(e) => setMaxConn(parseInt(e.target.value, 10) || 0)}
                     />
@@ -231,8 +246,8 @@ export function AddClient({ onNavigate, onLogout }: { onNavigate: (view: string)
                   {config.allow_tunnel_num_limit && (
                     <Input
                       type="number"
-                      label="最大隧道数"
-                      placeholder="0 = 不限"
+                      label={t('client.maxTunnelNum')}
+                      placeholder={t('client.flowLimitPlaceholder')}
                       value={maxTunnel || ''}
                       onChange={(e) => setMaxTunnel(parseInt(e.target.value, 10) || 0)}
                     />
@@ -250,7 +265,7 @@ export function AddClient({ onNavigate, onLogout }: { onNavigate: (view: string)
           onClick={() => onNavigate('clients')}
           className="px-6 py-2.5 rounded-xl text-sm font-bold text-on-surface-variant bg-surface-container-high hover:bg-surface-dim transition-all active:scale-95"
         >
-          取消
+          {t('common.cancel')}
         </button>
         <button
           type="submit"
@@ -258,7 +273,7 @@ export function AddClient({ onNavigate, onLogout }: { onNavigate: (view: string)
           disabled={loading}
           className="px-8 py-2.5 rounded-xl text-sm font-bold text-white bg-gradient-to-r from-primary to-primary-container shadow-ambient hover:shadow-lg hover:shadow-primary/20 transition-all active:scale-95 disabled:opacity-70"
         >
-          {loading ? '保存中...' : '保存客户端'}
+          {loading ? t('common.saving') : t('client.saveClient')}
         </button>
       </div>
     </div>

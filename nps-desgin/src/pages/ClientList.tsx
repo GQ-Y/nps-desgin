@@ -1,14 +1,24 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Sidebar } from '../components/Sidebar';
 import { Header } from '../components/Header';
 import { Card, TableSkeleton } from '../components/Shared';
-import { PlusCircle, Search, Edit2, Trash2, Power, PowerOff, ChevronDown, ChevronRight, Network, Globe, Copy, Check } from 'lucide-react';
+import { ClientGroupTree } from '../components/ClientGroupTree';
+import { MoveClientToGroupModal } from '../components/MoveToGroupPopover';
+import { PlusCircle, Search, Edit2, Trash2, Power, PowerOff, ChevronDown, ChevronRight, Network, Globe, Copy, Check, Move } from 'lucide-react';
 import {
   getClientList,
   changeClientStatus,
   delClient,
   getDashboard,
+  getGroups,
+  addGroup,
+  editGroup,
+  delGroup,
+  moveGroup,
+  moveClientToGroup,
   type ClientListResult,
+  type ClientGroup,
 } from '../api/client';
 
 type ClientRow = ClientListResult['rows'][0];
@@ -27,6 +37,7 @@ export function ClientList({
   onNavigate: (view: string) => void;
   onLogout?: () => void;
 }) {
+  const { t } = useTranslation();
   const [data, setData] = useState<ClientListResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -36,6 +47,9 @@ export function ClientList({
   const [ip, setIp] = useState('');
   const [bridgePort, setBridgePort] = useState(0);
   const [bridgeType, setBridgeType] = useState('tcp');
+  const [groups, setGroups] = useState<ClientGroup[]>([]);
+  const [selectedGroupId, setSelectedGroupId] = useState(0);
+  const [moveTarget, setMoveTarget] = useState<{ clientId: number } | null>(null);
   const limit = 10;
 
   useEffect(() => {
@@ -49,11 +63,18 @@ export function ClientList({
       .catch(() => {});
   }, []);
 
-  const fetchList = (overrides?: { offset?: number; search?: string }) => {
+  useEffect(() => {
+    getGroups()
+      .then(setGroups)
+      .catch(() => {});
+  }, []);
+
+  const fetchList = (overrides?: { offset?: number; search?: string; group_id?: number }) => {
     setLoading(true);
     const off = overrides?.offset ?? page * limit;
     const srch = overrides?.search ?? search;
-    getClientList({ offset: off, limit, search: srch })
+    const gid = overrides?.group_id ?? selectedGroupId;
+    getClientList({ offset: off, limit, search: srch, group_id: gid })
       .then((res) => {
         setData(res);
         if (res.ip) setIp(res.ip);
@@ -68,12 +89,86 @@ export function ClientList({
 
   useEffect(() => {
     fetchList();
-  }, [page]);
+  }, [page, selectedGroupId]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     setPage(0);
     fetchList({ offset: 0, search });
+  };
+
+  const handleSelectGroup = (id: number) => {
+    setSelectedGroupId(id);
+    setPage(0);
+  };
+
+  const handleAddGroup = async (parentId: number, name: string) => {
+    try {
+      const res = await addGroup({ parent_id: parentId, name });
+      if (res.status === 1) {
+        const list = await getGroups();
+        setGroups(list);
+      } else {
+        alert(res.msg);
+      }
+    } catch (e) {
+      alert((e as Error).message);
+    }
+  };
+
+  const handleEditGroup = async (g: ClientGroup, name: string) => {
+    try {
+      const res = await editGroup({ id: g.id, name });
+      if (res.status === 1) {
+        const list = await getGroups();
+        setGroups(list);
+      } else {
+        alert(res.msg);
+      }
+    } catch (e) {
+      alert((e as Error).message);
+    }
+  };
+
+  const handleMoveGroup = async (g: ClientGroup, newParentId: number) => {
+    try {
+      const res = await moveGroup(g.id, newParentId);
+      if (res.status === 1) {
+        const list = await getGroups();
+        setGroups(list);
+      } else {
+        alert(res.msg);
+      }
+    } catch (e) {
+      alert((e as Error).message);
+    }
+  };
+
+  const handleDelGroup = async (g: ClientGroup) => {
+    if (!confirm(t('client.confirmDeleteGroup'))) return;
+    try {
+      const res = await delGroup(g.id);
+      if (res.status === 1) {
+        const list = await getGroups();
+        setGroups(list);
+        if (selectedGroupId === g.id) setSelectedGroupId(0);
+        fetchList();
+      } else {
+        alert(res.msg);
+      }
+    } catch (e) {
+      alert((e as Error).message);
+    }
+  };
+
+  const handleMoveClient = async (clientId: number, groupId: number) => {
+    try {
+      await moveClientToGroup(clientId, groupId);
+      setMoveTarget(null);
+      fetchList();
+    } catch (e) {
+      alert((e as Error).message);
+    }
   };
 
   const handleStatus = async (id: number, status: boolean) => {
@@ -86,7 +181,7 @@ export function ClientList({
   };
 
   const handleDel = async (id: number) => {
-    if (!confirm('确定要删除该客户端吗？')) return;
+    if (!confirm(t('client.confirmDelete'))) return;
     try {
       await delClient(id);
       fetchList();
@@ -103,22 +198,33 @@ export function ClientList({
     <div className="min-h-screen bg-surface">
       <Sidebar currentView="clients" onNavigate={onNavigate} />
       <Header
-        breadcrumbs={[{ label: '工作台', view: 'dashboard' }, { label: '客户端列表' }]}
+        breadcrumbs={[{ labelKey: 'sidebar.dashboard', view: 'dashboard' }, { labelKey: 'client.list' }]}
         onNavigate={onNavigate}
         onLogout={onLogout}
-        showTabs
       />
 
-      <main className="ml-64 pt-20 px-10 pb-10">
+      <main className="ml-64 flex min-h-screen flex-col pt-20 px-10 pb-10">
+        <div className="flex min-h-0 flex-1 gap-6">
+          <ClientGroupTree
+            groups={groups}
+            selectedId={selectedGroupId}
+            onSelect={handleSelectGroup}
+            onAddGroup={isAdmin ? handleAddGroup : undefined}
+            onEditGroup={isAdmin ? handleEditGroup : undefined}
+            onDelGroup={isAdmin ? handleDelGroup : undefined}
+            onMoveGroup={isAdmin ? handleMoveGroup : undefined}
+            isAdmin={isAdmin}
+          />
+          <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold text-on-surface">客户端列表</h2>
+          <h2 className="text-2xl font-bold text-on-surface">{t('client.list')}</h2>
           {isAdmin && (
             <button
               onClick={() => onNavigate('add-client')}
               className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-xl text-sm font-bold hover:bg-primary/90 transition-colors"
             >
               <PlusCircle size={18} />
-              新增客户端
+              {t('client.addClient')}
             </button>
           )}
         </div>
@@ -131,7 +237,7 @@ export function ClientList({
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="搜索备注、验证密钥..."
+                placeholder={t('client.searchPlaceholder')}
                 className="w-full pl-10 pr-4 py-2.5 bg-surface-container-low rounded-xl text-sm border-none focus:ring-2 focus:ring-primary/30"
               />
             </div>
@@ -139,7 +245,7 @@ export function ClientList({
               type="submit"
               className="px-4 py-2.5 bg-surface-container-high rounded-xl text-sm font-medium text-on-surface hover:bg-surface-container transition-colors"
             >
-              搜索
+              {t('common.search')}
             </button>
           </form>
 
@@ -152,17 +258,17 @@ export function ClientList({
                   <thead>
                     <tr className="border-b border-outline-variant/30">
                       <th className="w-8 py-3 px-2"></th>
-                      <th className="text-left py-3 px-4 font-semibold text-on-surface-variant">ID</th>
-                      <th className="text-left py-3 px-4 font-semibold text-on-surface-variant">备注</th>
-                      <th className="text-left py-3 px-4 font-semibold text-on-surface-variant">版本</th>
-                      <th className="text-left py-3 px-4 font-semibold text-on-surface-variant">验证密钥</th>
-                      <th className="text-left py-3 px-4 font-semibold text-on-surface-variant">地址</th>
-                      <th className="text-left py-3 px-4 font-semibold text-on-surface-variant">入站流量</th>
-                      <th className="text-left py-3 px-4 font-semibold text-on-surface-variant">出站流量</th>
-                      <th className="text-left py-3 px-4 font-semibold text-on-surface-variant">速度</th>
-                      <th className="text-left py-3 px-4 font-semibold text-on-surface-variant">状态</th>
-                      <th className="text-left py-3 px-4 font-semibold text-on-surface-variant">连接数</th>
-                      <th className="text-left py-3 px-4 font-semibold text-on-surface-variant">操作</th>
+                      <th className="text-left py-3 px-4 font-semibold text-on-surface-variant">{t('client.id')}</th>
+                      <th className="text-left py-3 px-4 font-semibold text-on-surface-variant">{t('client.remark')}</th>
+                      <th className="text-left py-3 px-4 font-semibold text-on-surface-variant">{t('client.version')}</th>
+                      <th className="text-left py-3 px-4 font-semibold text-on-surface-variant">{t('client.verifyKey')}</th>
+                      <th className="text-left py-3 px-4 font-semibold text-on-surface-variant">{t('client.addr')}</th>
+                      <th className="text-left py-3 px-4 font-semibold text-on-surface-variant">{t('client.inletFlow')}</th>
+                      <th className="text-left py-3 px-4 font-semibold text-on-surface-variant">{t('client.exportFlow')}</th>
+                      <th className="text-left py-3 px-4 font-semibold text-on-surface-variant">{t('client.speed')}</th>
+                      <th className="text-left py-3 px-4 font-semibold text-on-surface-variant">{t('client.status')}</th>
+                      <th className="text-left py-3 px-4 font-semibold text-on-surface-variant">{t('client.connCount')}</th>
+                      <th className="text-left py-3 px-4 font-semibold text-on-surface-variant">{t('client.actions')}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -181,7 +287,7 @@ export function ClientList({
                           <td className="py-3 px-4">{r.Remark || '-'}</td>
                           <td className="py-3 px-4 tabular-nums">{r.Version || '-'}</td>
                           <td className="py-3 px-4 font-mono text-xs">
-                            {r.NoStore ? '公钥' : (r.VerifyKey || '-')}
+                            {r.NoStore ? t('client.publicKey') : (r.VerifyKey || '-')}
                           </td>
                           <td className="py-3 px-4 text-xs">{r.Addr || '-'}</td>
                           <td className="py-3 px-4 tabular-nums text-xs">{formatFlow(r.Flow?.InletFlow ?? 0)}</td>
@@ -193,7 +299,7 @@ export function ClientList({
                                 r.IsConnect ? 'bg-success/20 text-success' : 'bg-outline/20 text-on-surface-variant'
                               }`}
                             >
-                              {r.IsConnect ? '在线' : '离线'}
+                              {r.IsConnect ? t('client.online') : t('client.offline')}
                             </span>
                           </td>
                           <td className="py-3 px-4 tabular-nums">
@@ -206,35 +312,45 @@ export function ClientList({
                                 className="flex items-center gap-1 px-2 py-1 rounded-lg bg-primary/10 text-primary text-xs font-medium hover:bg-primary/20"
                               >
                                 <Network size={12} />
-                                隧道
+                                {t('client.tunnel')}
                               </button>
                               <button
                                 onClick={() => onNavigate(`domain-${r.Id}`)}
                                 className="flex items-center gap-1 px-2 py-1 rounded-lg bg-primary/10 text-primary text-xs font-medium hover:bg-primary/20"
                               >
                                 <Globe size={12} />
-                                域名
+                                {t('client.domain')}
                               </button>
+                              {isAdmin && groups.length > 0 && (
+                                <button
+                                  type="button"
+                                  onClick={() => setMoveTarget({ clientId: r.Id })}
+                                  className="p-1.5 rounded-lg hover:bg-surface-container-high text-outline hover:text-primary transition-colors"
+                                  title={t('client.moveToGroup')}
+                                >
+                                  <Move size={16} />
+                                </button>
+                              )}
                               {isAdmin && (
                                 <>
                                   <button
                                     onClick={() => handleStatus(r.Id, !r.Status)}
                                     className="p-1.5 rounded-lg hover:bg-surface-container-high text-outline hover:text-primary transition-colors"
-                                    title={r.Status ? '禁用' : '启用'}
+                                    title={r.Status ? t('client.disable') : t('client.enable')}
                                   >
                                     {r.Status ? <PowerOff size={16} /> : <Power size={16} />}
                                   </button>
                                   <button
                                     onClick={() => onNavigate(`edit-client-${r.Id}`)}
                                     className="p-1.5 rounded-lg hover:bg-surface-container-high text-outline hover:text-primary transition-colors"
-                                    title="编辑"
+                                    title={t('common.edit')}
                                   >
                                     <Edit2 size={16} />
                                   </button>
                                   <button
                                     onClick={() => handleDel(r.Id)}
                                     className="p-1.5 rounded-lg hover:bg-surface-container-high text-outline hover:text-error transition-colors"
-                                    title="删除"
+                                    title={t('common.delete')}
                                   >
                                     <Trash2 size={16} />
                                   </button>
@@ -266,26 +382,26 @@ export function ClientList({
               </div>
 
               {rows.length === 0 && (
-                <div className="py-12 text-center text-on-surface-variant text-sm">暂无数据</div>
+                <div className="py-12 text-center text-on-surface-variant text-sm">{t('common.noData')}</div>
               )}
 
               {totalPages > 1 && (
                 <div className="flex items-center justify-between mt-6 pt-4 border-t border-outline-variant/15">
-                  <span className="text-sm text-on-surface-variant">共 {total} 条</span>
+                  <span className="text-sm text-on-surface-variant">{t('common.totalCount', { count: total })}</span>
                   <div className="flex gap-2">
                     <button
                       disabled={page === 0}
                       onClick={() => setPage((p) => p - 1)}
                       className="px-3 py-1.5 rounded-lg text-sm font-medium bg-surface-container-low hover:bg-surface-container disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      上一页
+                      {t('common.prevPage')}
                     </button>
                     <button
                       disabled={page >= totalPages - 1}
                       onClick={() => setPage((p) => p + 1)}
                       className="px-3 py-1.5 rounded-lg text-sm font-medium bg-surface-container-low hover:bg-surface-container disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      下一页
+                      {t('common.nextPage')}
                     </button>
                   </div>
                 </div>
@@ -293,12 +409,23 @@ export function ClientList({
             </>
           )}
         </Card>
+          </div>
+        </div>
+        {moveTarget && (
+          <MoveClientToGroupModal
+            groups={groups}
+            clientId={moveTarget.clientId}
+            onSelect={(groupId) => handleMoveClient(moveTarget.clientId, groupId)}
+            onClose={() => setMoveTarget(null)}
+          />
+        )}
       </main>
     </div>
   );
 }
 
 function ClientDetail({ row, ip, p, bridgeType }: { row: ClientRow; ip: string; p: number; bridgeType: string }) {
+  const { t } = useTranslation();
   const [copied, setCopied] = useState(false);
   const win = typeof navigator !== 'undefined' && /Win/i.test(navigator.userAgent) ? '.exe' : '';
   const cmd = row.NoStore
@@ -317,26 +444,26 @@ function ClientDetail({ row, ip, p, bridgeType }: { row: ClientRow; ip: string; 
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-      <DetailSection title="连接与限制">
-        <DetailItem label="最大连接" value={`${row.NowConn ?? 0} / ${row.MaxConn ?? 0}`} />
-        <DetailItem label="流量限制" value={flowLimitMb != null ? `${flowLimitMb} MB` : '不限'} />
-        <DetailItem label="速率限制" value={(row.RateLimit ?? 0) > 0 ? `${row.RateLimit} KB/s` : '不限'} />
-        <DetailItem label="最大隧道数" value={String(row.MaxTunnelNum ?? 0)} />
+      <DetailSection title={t('client.connectionLimit')}>
+        <DetailItem label={t('client.maxConn')} value={`${row.NowConn ?? 0} / ${row.MaxConn ?? 0}`} />
+        <DetailItem label={t('client.flowLimit')} value={flowLimitMb != null ? `${flowLimitMb} MB` : t('client.unlimited')} />
+        <DetailItem label={t('client.rateLimit')} value={(row.RateLimit ?? 0) > 0 ? `${row.RateLimit} KB/s` : t('client.unlimited')} />
+        <DetailItem label={t('client.maxTunnelNum')} value={String(row.MaxTunnelNum ?? 0)} />
       </DetailSection>
-      <DetailSection title="认证信息">
-        <DetailItem label="Web 用户名" value={row.WebUserName || '-'} />
-        <DetailItem label="Web 密码" value={row.WebPassword ? '****' : '-'} />
-        <DetailItem label="Basic 用户名" value={row.Cnf?.U || '-'} />
-        <DetailItem label="Basic 密码" value={row.Cnf?.P ? '****' : '-'} />
+      <DetailSection title={t('client.authInfo')}>
+        <DetailItem label={t('client.webUsername')} value={row.WebUserName || '-'} />
+        <DetailItem label={t('client.webPassword')} value={row.WebPassword ? '****' : '-'} />
+        <DetailItem label={t('client.basicUsername')} value={row.Cnf?.U || '-'} />
+        <DetailItem label={t('client.basicPassword')} value={row.Cnf?.P ? '****' : '-'} />
       </DetailSection>
-      <DetailSection title="安全选项">
-        <DetailItem label="加密" value={row.Cnf?.Crypt ? '是' : '否'} />
-        <DetailItem label="压缩" value={row.Cnf?.Compress ? '是' : '否'} />
-        <DetailItem label="仅配置连接" value={row.ConfigConnAllow ? '是' : '否'} />
+      <DetailSection title={t('client.securityOptions')}>
+        <DetailItem label={t('client.encrypt')} value={row.Cnf?.Crypt ? t('common.yes') : t('common.no')} />
+        <DetailItem label={t('client.compress')} value={row.Cnf?.Compress ? t('common.yes') : t('common.no')} />
+        <DetailItem label={t('client.configConnOnly')} value={row.ConfigConnAllow ? t('common.yes') : t('common.no')} />
       </DetailSection>
       <div className="md:col-span-3 pt-2 border-t border-outline-variant/15">
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-xs font-semibold text-on-surface-variant shrink-0">客户端连接命令</span>
+          <span className="text-xs font-semibold text-on-surface-variant shrink-0">{t('client.connCommand')}</span>
           {cmd ? (
             <>
               <code className="flex-1 min-w-0 bg-surface-container-high px-3 py-2 rounded-lg text-xs font-mono break-all">
@@ -348,11 +475,11 @@ function ClientDetail({ row, ip, p, bridgeType }: { row: ClientRow; ip: string; 
                 className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/10 text-primary text-xs font-medium hover:bg-primary/20 transition-colors"
               >
                 {copied ? <Check size={14} /> : <Copy size={14} />}
-                {copied ? '已复制' : '复制'}
+                {copied ? t('client.copied') : t('client.copy')}
               </button>
             </>
           ) : (
-            <span className="text-xs text-on-surface-variant">公钥模式，请在编辑页查看连接方式</span>
+            <span className="text-xs text-on-surface-variant">{t('client.publicKeyMode')}</span>
           )}
         </div>
       </div>

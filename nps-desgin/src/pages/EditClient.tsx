@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Sidebar } from '../components/Sidebar';
 import { Header } from '../components/Header';
 import { Card, PageTransition, Skeleton } from '../components/Shared';
 import { Input, Select, PasswordInput } from '../components/ui';
 import { RefreshCw } from 'lucide-react';
-import { getClient, editClient, getDashboard } from '../api/client';
+import { getClient, editClient, getDashboard, getGroups, type ClientGroup } from '../api/client';
+import { GroupSelect } from '../components/GroupSelect';
 
 type Config = {
   allow_flow_limit?: boolean;
@@ -25,6 +27,7 @@ export function EditClient({
   onNavigate: (view: string) => void;
   onLogout?: () => void;
 }) {
+  const { t } = useTranslation();
   const [config, setConfig] = useState<Config>({});
   const [remark, setRemark] = useState('');
   const [vkey, setVkey] = useState('');
@@ -39,6 +42,8 @@ export function EditClient({
   const [rateLimit, setRateLimit] = useState(0);
   const [maxConn, setMaxConn] = useState(0);
   const [maxTunnel, setMaxTunnel] = useState(0);
+  const [groupId, setGroupId] = useState(0);
+  const [groups, setGroups] = useState<ClientGroup[]>([]);
   const [loading, setLoading] = useState(false);
   const [dataLoaded, setDataLoaded] = useState(false);
   const [loadError, setLoadError] = useState('');
@@ -51,13 +56,16 @@ export function EditClient({
   useEffect(() => {
     getDashboard().then((d) => setConfig(d as Config)).catch(() => {});
   }, []);
+  useEffect(() => {
+    getGroups().then(setGroups).catch(() => {});
+  }, []);
 
   useEffect(() => {
     setDataLoaded(false);
     getClient(clientId)
       .then((res) => {
         if (res.code !== 1 || !res.data) {
-          setLoadError('加载失败');
+          setLoadError(t('client.loadFailed'));
           setDataLoaded(true);
           return;
         }
@@ -80,6 +88,7 @@ export function EditClient({
         setWebUsername(c.WebUserName ?? '');
         setWebPassword(c.WebPassword ?? '');
         setConfigConnAllow(c.ConfigConnAllow ?? false);
+        setGroupId((c as { GroupId?: number; group_id?: number }).GroupId ?? (c as { group_id?: number }).group_id ?? 0);
         setCompress(c.Cnf?.Compress ?? false);
         setCrypt(c.Cnf?.Crypt ?? false);
         setFlowLimit(c.Flow?.FlowLimit ?? 0);
@@ -119,6 +128,7 @@ export function EditClient({
         config_conn_allow: configConnAllow,
         compress: compress ? '1' : '0',
         crypt: crypt ? '1' : '0',
+        ...(isAdmin && { group_id: groupId }),
         ...(config.allow_flow_limit && isAdmin && { flow_limit: flowLimit }),
         ...(config.allow_rate_limit && isAdmin && { rate_limit: rateLimit }),
         ...(config.allow_connection_num_limit && isAdmin && { max_conn: maxConn }),
@@ -127,10 +137,10 @@ export function EditClient({
       if (res.status === 1) {
         onNavigate('clients');
       } else {
-        setSaveError(res.msg || '保存失败');
+        setSaveError(res.msg || t('common.saveFailed'));
       }
     } catch (err) {
-      setSaveError(err instanceof Error ? err.message : '保存失败');
+      setSaveError(err instanceof Error ? err.message : t('common.saveFailed'));
     } finally {
       setLoading(false);
     }
@@ -141,7 +151,7 @@ export function EditClient({
       <div className="min-h-screen bg-surface">
         <Sidebar currentView="clients" onNavigate={onNavigate} />
         <Header
-          breadcrumbs={[{ label: '客户端', view: 'clients' }, { label: '编辑客户端' }]}
+          breadcrumbs={[{ labelKey: 'sidebar.clients', view: 'clients' }, { labelKey: 'client.editClient' }]}
           onNavigate={onNavigate}
           onLogout={onLogout}
         />
@@ -173,7 +183,7 @@ export function EditClient({
       <div className="min-h-screen bg-surface">
         <Sidebar currentView="clients" onNavigate={onNavigate} />
         <Header
-          breadcrumbs={[{ label: '客户端', view: 'clients' }, { label: '编辑客户端' }]}
+          breadcrumbs={[{ labelKey: 'sidebar.clients', view: 'clients' }, { labelKey: 'client.editClient' }]}
           onNavigate={onNavigate}
           onLogout={onLogout}
         />
@@ -183,7 +193,7 @@ export function EditClient({
             onClick={() => onNavigate('clients')}
             className="mt-4 px-4 py-2 bg-surface-container-high rounded-xl text-sm"
           >
-            返回列表
+            {t('client.backToList')}
           </button>
         </main>
       </div>
@@ -197,14 +207,13 @@ export function EditClient({
         breadcrumbs={[{ label: '客户端', view: 'clients' }, { label: '编辑客户端' }]}
         onNavigate={onNavigate}
         onLogout={onLogout}
-        showTabs
       />
 
       <main className="ml-64 pt-20 px-10 pb-10 max-w-5xl mx-auto">
         <PageTransition>
           <div className="mb-8">
-            <h2 className="text-2xl font-bold text-on-surface tracking-tight">编辑客户端</h2>
-            <p className="text-on-surface-variant text-sm mt-1">修改客户端配置。</p>
+            <h2 className="text-2xl font-bold text-on-surface tracking-tight">{t('client.editClient')}</h2>
+            <p className="text-on-surface-variant text-sm mt-1">{t('client.editClientDesc')}</p>
           </div>
 
           <form id="edit-client-form" onSubmit={handleSubmit} className="space-y-8">
@@ -215,44 +224,53 @@ export function EditClient({
             )}
 
             <Card>
-              <SectionHeader title="基本配置" />
+              <SectionHeader title={t('client.basicConfig')} />
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {config.isAdmin !== false && (
+                  <GroupSelect
+                    groups={groups}
+                    value={groupId}
+                    onChange={setGroupId}
+                    label={t('client.group')}
+                    className="col-span-2"
+                  />
+                )}
                 <Input
-                  label="备注"
+                  label={t('client.remark')}
                   value={remark}
                   onChange={(e) => setRemark(e.target.value)}
-                  placeholder="例如：生产环境-API 服务器"
+                  placeholder={t('client.remarkPlaceholder')}
                   containerClassName="col-span-2"
                 />
                 <Input
-                  label="Basic 认证用户名"
+                  label={t('client.basicAuthUser')}
                   value={u}
                   onChange={(e) => setU(e.target.value)}
                 />
                 <PasswordInput
-                  label="Basic 认证密码"
+                  label={t('client.basicAuthPass')}
                   value={p}
                   onChange={(e) => setP(e.target.value)}
-                  placeholder="留空则不修改"
+                  placeholder={t('client.leaveEmptyNoChange')}
                 />
                 {config.allow_user_login && (
                   <>
                     <Input
-                      label="Web 登录用户名"
+                      label={t('client.webLoginUser')}
                       value={webUsername}
                       onChange={(e) => setWebUsername(e.target.value)}
                       readOnly={!config.isAdmin && !config.allow_user_change_username}
                     />
                     <PasswordInput
-                      label="Web 登录密码"
+                      label={t('client.webLoginPass')}
                       value={webPassword}
                       onChange={(e) => setWebPassword(e.target.value)}
-                      placeholder="留空则不修改"
+                      placeholder={t('client.leaveEmptyNoChange')}
                     />
                   </>
                 )}
                 <div className="col-span-2">
-                  <label className="text-sm font-semibold mb-1.5 block text-on-surface">验证密钥</label>
+                  <label className="text-sm font-semibold mb-1.5 block text-on-surface">{t('client.verifyKeyLabel')}</label>
                   <div className="flex gap-3">
                     <Input
                       value={vkey}
@@ -268,39 +286,39 @@ export function EditClient({
                         className="bg-primary-fixed text-on-primary-fixed px-5 rounded-xl text-sm font-bold hover:bg-primary-fixed-dim transition-colors flex items-center gap-2 shrink-0"
                       >
                         <RefreshCw size={16} />
-                        生成
+                        {t('client.generate')}
                       </button>
                     )}
                   </div>
                 </div>
                 <div className="col-span-2">
                   <Select
-                    label="仅允许配置连接"
+                    label={t('client.configConnLabel')}
                     value={configConnAllow ? '1' : '0'}
                     onChange={(v) => setConfigConnAllow(v === '1')}
                     options={[
-                      { value: '0', label: '否（动态模式）' },
-                      { value: '1', label: '是（高安全）' },
+                      { value: '0', label: t('client.configConnNo') },
+                      { value: '1', label: t('client.configConnYes') },
                     ]}
                   />
-                  <p className="text-xs text-on-surface-variant mt-1">开启后客户端仅能通过配置文件连接，无法动态添加隧道</p>
+                  <p className="text-xs text-on-surface-variant mt-1">{t('client.configConnDesc')}</p>
                 </div>
                 <Select
-                  label="压缩"
+                  label={t('client.compress')}
                   value={compress ? '1' : '0'}
                   onChange={(v) => setCompress(v === '1')}
                   options={[
-                    { value: '0', label: '否' },
-                    { value: '1', label: '是' },
+                    { value: '0', label: t('common.no') },
+                    { value: '1', label: t('common.yes') },
                   ]}
                 />
                 <Select
-                  label="加密"
+                  label={t('client.encrypt')}
                   value={crypt ? '1' : '0'}
                   onChange={(v) => setCrypt(v === '1')}
                   options={[
-                    { value: '0', label: '否' },
-                    { value: '1', label: '是' },
+                    { value: '0', label: t('common.no') },
+                    { value: '1', label: t('common.yes') },
                   ]}
                 />
               </div>
@@ -308,14 +326,14 @@ export function EditClient({
 
             {hasAdvancedSection && (
               <Card>
-                <SectionHeader title="高级限制（可选）" />
-                <p className="text-sm text-on-surface-variant mb-6">流量、速度、连接数等限制，0 表示不限制。</p>
+                <SectionHeader title={t('client.advancedLimitTitle')} />
+                <p className="text-sm text-on-surface-variant mb-6">{t('client.flowSpeedConnDesc')}</p>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                   {config.allow_flow_limit && config.isAdmin && (
                     <Input
                       type="number"
-                      label="流量限制 (MB)"
-                      placeholder="0 = 不限"
+                      label={t('client.flowLimitMb')}
+                      placeholder={t('client.flowLimitPlaceholder')}
                       value={flowLimit || ''}
                       onChange={(e) => setFlowLimit(parseInt(e.target.value, 10) || 0)}
                     />
@@ -323,8 +341,8 @@ export function EditClient({
                   {config.allow_rate_limit && config.isAdmin && (
                     <Input
                       type="number"
-                      label="速度限制 (KB/s)"
-                      placeholder="0 = 不限"
+                      label={t('client.speedLimit')}
+                      placeholder={t('client.flowLimitPlaceholder')}
                       value={rateLimit || ''}
                       onChange={(e) => setRateLimit(parseInt(e.target.value, 10) || 0)}
                     />
@@ -332,8 +350,8 @@ export function EditClient({
                   {config.allow_connection_num_limit && config.isAdmin && (
                     <Input
                       type="number"
-                      label="最大连接数"
-                      placeholder="0 = 不限"
+                      label={t('client.maxConnNum')}
+                      placeholder={t('client.flowLimitPlaceholder')}
                       value={maxConn || ''}
                       onChange={(e) => setMaxConn(parseInt(e.target.value, 10) || 0)}
                     />
@@ -341,8 +359,8 @@ export function EditClient({
                   {config.allow_tunnel_num_limit && config.isAdmin && (
                     <Input
                       type="number"
-                      label="最大隧道数"
-                      placeholder="0 = 不限"
+                      label={t('client.maxTunnelNum')}
+                      placeholder={t('client.flowLimitPlaceholder')}
                       value={maxTunnel || ''}
                       onChange={(e) => setMaxTunnel(parseInt(e.target.value, 10) || 0)}
                     />
@@ -360,7 +378,7 @@ export function EditClient({
           onClick={() => onNavigate('clients')}
           className="px-6 py-2.5 rounded-xl text-sm font-bold text-on-surface-variant bg-surface-container-high hover:bg-surface-dim transition-all"
         >
-          取消
+          {t('common.cancel')}
         </button>
         <button
           type="submit"
@@ -368,7 +386,7 @@ export function EditClient({
           disabled={loading}
           className="px-8 py-2.5 rounded-xl text-sm font-bold text-white bg-gradient-to-r from-primary to-primary-container shadow-ambient hover:shadow-lg hover:shadow-primary/20 transition-all disabled:opacity-70"
         >
-          {loading ? '保存中...' : '保存'}
+          {loading ? t('common.saving') : t('common.save')}
         </button>
       </div>
     </div>

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Sidebar } from '../components/Sidebar';
 import { Header } from '../components/Header';
 import { Card, TableSkeleton } from '../components/Shared';
@@ -19,16 +20,16 @@ function formatFlow(n: number): string {
   return n + ' B';
 }
 
-const TYPE_LABELS: Record<string, string> = {
-  tcp: 'TCP',
-  udp: 'UDP',
-  http: 'HTTP 代理',
-  socks5: 'SOCKS5',
-  tunnel: 'Secret 隧道',
-  secret: 'Secret 隧道',
-  p2p: 'P2P',
-  file: '文件服务',
-  all: '全部隧道',
+const TYPE_KEYS: Record<string, string> = {
+  tcp: 'sidebar.tcp',
+  udp: 'sidebar.udp',
+  http: 'sidebar.httpProxy',
+  socks5: 'sidebar.socks5',
+  tunnel: 'sidebar.secretTunnel',
+  secret: 'sidebar.secretTunnel',
+  p2p: 'sidebar.p2p',
+  file: 'sidebar.fileService',
+  all: 'tunnel.allTunnels',
 };
 
 const TYPE_MAP: Record<string, string> = {
@@ -54,6 +55,7 @@ export function TunnelList({
   onLogout?: () => void;
   clientId?: number;
 }) {
+  const { t } = useTranslation();
   const [data, setData] = useState<TunnelListResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -74,7 +76,8 @@ export function TunnelList({
       .catch(() => {});
   }, []);
   const typeParam = TYPE_MAP[tunnelType] ?? tunnelType;
-  const title = clientId ? `客户端 ${clientId} - ${TYPE_LABELS[tunnelType] ?? tunnelType}` : (TYPE_LABELS[tunnelType] ?? tunnelType);
+  const typeLabel = t(TYPE_KEYS[tunnelType] ?? tunnelType);
+  const title = clientId ? t('common.clientId', { id: clientId }) + ' - ' + typeLabel : typeLabel;
 
   const fetchList = () => {
     setLoading(true);
@@ -121,7 +124,7 @@ export function TunnelList({
   };
 
   const handleDel = async (id: number) => {
-    if (!confirm('确定要删除该隧道吗？')) return;
+    if (!confirm(t('tunnel.confirmDelete'))) return;
     try {
       await delTunnel(id);
       fetchList();
@@ -138,20 +141,20 @@ export function TunnelList({
     <div className="min-h-screen bg-surface">
       <Sidebar currentView={tunnelType} onNavigate={onNavigate} />
       <Header
-        breadcrumbs={[{ label: '工作台', view: 'dashboard' }, { label: title }]}
+        breadcrumbs={[{ labelKey: 'sidebar.dashboard', view: 'dashboard' }, { label: title }]}
         onNavigate={onNavigate}
         onLogout={onLogout}
       />
 
       <main className="ml-64 pt-20 px-10 pb-10">
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold text-on-surface">{title} 列表</h2>
+          <h2 className="text-2xl font-bold text-on-surface">{t('tunnel.list')} - {typeLabel}</h2>
           <button
             onClick={() => onNavigate(`add-tunnel-${tunnelType === 'all' ? 'tcp' : tunnelType}-${clientId ?? 0}`)}
-            title={!clientId ? '请从客户端列表进入以指定客户端' : ''}
+            title={!clientId ? t('client.selectClientFirst') : ''}
             className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-xl text-sm font-bold hover:bg-primary/90 transition-colors"
           >
-            添加隧道
+            {t('tunnel.addTunnel')}
           </button>
         </div>
 
@@ -163,7 +166,7 @@ export function TunnelList({
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="搜索备注、端口..."
+                placeholder={t('tunnel.searchPlaceholder')}
                 className="w-full pl-10 pr-4 py-2.5 bg-surface-container-low rounded-xl text-sm border-none focus:ring-2 focus:ring-primary/30"
               />
             </div>
@@ -171,7 +174,7 @@ export function TunnelList({
               type="submit"
               className="px-4 py-2.5 bg-surface-container-high rounded-xl text-sm font-medium text-on-surface hover:bg-surface-container transition-colors"
             >
-              搜索
+              {t('common.search')}
             </button>
           </form>
 
@@ -184,12 +187,12 @@ export function TunnelList({
                   <thead>
                     <tr className="border-b border-outline-variant/30">
                       <th className="w-8 py-3 px-2"></th>
-                      <th className="text-left py-3 px-4 font-semibold text-on-surface-variant">ID</th>
-                      <th className="text-left py-3 px-4 font-semibold text-on-surface-variant">端口</th>
-                      <th className="text-left py-3 px-4 font-semibold text-on-surface-variant">备注</th>
-                      <th className="text-left py-3 px-4 font-semibold text-on-surface-variant">目标</th>
-                      <th className="text-left py-3 px-4 font-semibold text-on-surface-variant">状态</th>
-                      <th className="text-left py-3 px-4 font-semibold text-on-surface-variant">操作</th>
+                      <th className="text-left py-3 px-4 font-semibold text-on-surface-variant">{t('client.id')}</th>
+                      <th className="text-left py-3 px-4 font-semibold text-on-surface-variant">{t('tunnel.port')}</th>
+                      <th className="text-left py-3 px-4 font-semibold text-on-surface-variant">{t('tunnel.remark')}</th>
+                      <th className="text-left py-3 px-4 font-semibold text-on-surface-variant">{t('tunnel.target')}</th>
+                      <th className="text-left py-3 px-4 font-semibold text-on-surface-variant">{t('tunnel.status')}</th>
+                      <th className="text-left py-3 px-4 font-semibold text-on-surface-variant">{t('client.actions')}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -214,7 +217,7 @@ export function TunnelList({
                               r.RunStatus ? 'bg-success/20 text-success' : 'bg-outline/20 text-on-surface-variant'
                             }`}
                           >
-                            {r.RunStatus ? '运行中' : '已停止'}
+                            {r.RunStatus ? t('client.running') : t('client.stopped')}
                           </span>
                         </td>
                         <td className="py-3 px-4">
@@ -223,7 +226,7 @@ export function TunnelList({
                               <button
                                 onClick={() => handleStop(r.Id)}
                                 className="p-1.5 rounded-lg hover:bg-surface-container-high text-outline hover:text-warning transition-colors"
-                                title="停止"
+                                title={t('tunnel.stop')}
                               >
                                 <Square size={16} />
                               </button>
@@ -231,7 +234,7 @@ export function TunnelList({
                               <button
                                 onClick={() => handleStart(r.Id)}
                                 className="p-1.5 rounded-lg hover:bg-surface-container-high text-outline hover:text-success transition-colors"
-                                title="启动"
+                                title={t('tunnel.start')}
                               >
                                 <Play size={16} />
                               </button>
@@ -239,14 +242,14 @@ export function TunnelList({
                             <button
                               onClick={() => onNavigate(`edit-tunnel-${r.Id}`)}
                               className="p-1.5 rounded-lg hover:bg-surface-container-high text-outline hover:text-primary transition-colors"
-                              title="编辑"
+                              title={t('common.edit')}
                             >
                               <Edit2 size={16} />
                             </button>
                             <button
                               onClick={() => handleDel(r.Id)}
                               className="p-1.5 rounded-lg hover:bg-surface-container-high text-outline hover:text-error transition-colors"
-                              title="删除"
+                              title={t('common.delete')}
                             >
                               <Trash2 size={16} />
                             </button>
@@ -257,16 +260,16 @@ export function TunnelList({
                           <tr className="bg-surface-container-low/50">
                             <td colSpan={7} className="py-4 px-6">
                               <div className="grid grid-cols-2 gap-x-8 gap-y-2 text-xs text-on-surface-variant">
-                                <div>入站流量: {formatFlow(r.Flow?.InletFlow ?? 0)}</div>
-                                <div>出站流量: {formatFlow(r.Flow?.ExportFlow ?? 0)}</div>
-                                <div>加密: {r.Client?.Cnf?.Crypt ? '是' : '否'}</div>
-                                <div>压缩: {r.Client?.Cnf?.Compress ? '是' : '否'}</div>
+                                <div>{t('tunnel.inletFlowLabel')}: {formatFlow(r.Flow?.InletFlow ?? 0)}</div>
+                                <div>{t('tunnel.exportFlowLabel')}: {formatFlow(r.Flow?.ExportFlow ?? 0)}</div>
+                                <div>{t('client.encrypt')}: {r.Client?.Cnf?.Crypt ? t('common.yes') : t('common.no')}</div>
+                                <div>{t('client.compress')}: {r.Client?.Cnf?.Compress ? t('common.yes') : t('common.no')}</div>
                                 {(r.Client?.Cnf?.U || r.Client?.Cnf?.P) && (
-                                  <div className="col-span-2">Basic 认证: {r.Client?.Cnf?.U || '-'} / ***</div>
+                                  <div className="col-span-2">{t('tunnel.basicAuth')}: {r.Client?.Cnf?.U || '-'} / ***</div>
                                 )}
                                 {(r.Mode === 'secret' || r.Mode === 'p2p') && connInfo.ip && connInfo.p && (
                                   <div className="col-span-2 mt-2">
-                                    <span className="font-medium text-on-surface">连接命令:</span>
+                                    <span className="font-medium text-on-surface">{t('tunnel.connCommand')}:</span>
                                     <code className="block mt-1 p-2 bg-surface-container rounded font-mono text-[11px] break-all">
                                       ./npc -server={connInfo.ip}:{connInfo.p} -vkey={r.Client?.VerifyKey ?? ''}
                                       {r.Mode === 'secret' && r.Password ? ` -type=secret -password=${r.Password}` : ''}
@@ -285,26 +288,26 @@ export function TunnelList({
               </div>
 
               {rows.length === 0 && (
-                <div className="py-12 text-center text-on-surface-variant text-sm">暂无数据</div>
+                <div className="py-12 text-center text-on-surface-variant text-sm">{t('common.noData')}</div>
               )}
 
               {totalPages > 1 && (
                 <div className="flex items-center justify-between mt-6 pt-4 border-t border-outline-variant/15">
-                  <span className="text-sm text-on-surface-variant">共 {total} 条</span>
+                  <span className="text-sm text-on-surface-variant">{t('common.totalCount', { count: total })}</span>
                   <div className="flex gap-2">
                     <button
                       disabled={page === 0}
                       onClick={() => setPage((p) => p - 1)}
                       className="px-3 py-1.5 rounded-lg text-sm font-medium bg-surface-container-low hover:bg-surface-container disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      上一页
+                      {t('common.prevPage')}
                     </button>
                     <button
                       disabled={page >= totalPages - 1}
                       onClick={() => setPage((p) => p + 1)}
                       className="px-3 py-1.5 rounded-lg text-sm font-medium bg-surface-container-low hover:bg-surface-container disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      下一页
+                      {t('common.nextPage')}
                     </button>
                   </div>
                 </div>

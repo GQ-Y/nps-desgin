@@ -274,10 +274,15 @@ func GetTunnel(start, length int, typeVal string, clientId int, search string) (
 }
 
 //get client list
-func GetClientList(start, length int, search, sort, order string, clientId int) (list []*file.Client, cnt int) {
-	list, cnt = file.GetDb().GetClientList(start, length, search, sort, order, clientId)
+func GetClientList(start, length int, search, sort, order string, clientId int, groupId int) (list []*file.Client, cnt int) {
+	list, cnt = file.GetDb().GetClientList(start, length, search, sort, order, clientId, groupId)
 	dealClientData()
 	return
+}
+
+// GetGroupTree 返回分组树
+func GetGroupTree() []*file.ClientGroup {
+	return file.GetDb().GetGroupTree()
 }
 
 func dealClientData() {

@@ -20,6 +20,7 @@ func NewJsonDb(runPath string) *JsonDb {
 		TaskFilePath:   filepath.Join(runPath, "conf", "tasks.json"),
 		HostFilePath:   filepath.Join(runPath, "conf", "hosts.json"),
 		ClientFilePath: filepath.Join(runPath, "conf", "clients.json"),
+		GroupFilePath:  filepath.Join(runPath, "conf", "groups.json"),
 	}
 }
 
@@ -28,6 +29,7 @@ type JsonDb struct {
 	Hosts            sync.Map
 	HostsTmp         sync.Map
 	Clients          sync.Map
+	Groups           sync.Map
 	RunPath          string
 	ClientIncreaseId int32  //client increased id
 	TaskIncreaseId   int32  //task increased id
@@ -35,6 +37,8 @@ type JsonDb struct {
 	TaskFilePath     string //task file path
 	HostFilePath     string //host file path
 	ClientFilePath   string //client file path
+	GroupFilePath    string //group file path
+	GroupIncreaseId  int32  //group increased id
 }
 
 func (s *JsonDb) LoadTaskFromJsonFile() {
@@ -52,6 +56,26 @@ func (s *JsonDb) LoadTaskFromJsonFile() {
 			s.TaskIncreaseId = int32(post.Id)
 		}
 	})
+}
+
+func (s *JsonDb) LoadGroupsFromJsonFile() {
+	b, err := common.ReadAllFromFile(s.GroupFilePath)
+	if err != nil {
+		return // 文件不存在时静默跳过
+	}
+	for _, v := range strings.Split(string(b), "\n"+common.CONN_DATA_SEQ) {
+		if v == "" {
+			continue
+		}
+		post := new(ClientGroup)
+		if json.Unmarshal([]byte(v), post) != nil {
+			continue
+		}
+		s.Groups.Store(post.Id, post)
+		if post.Id > int(s.GroupIncreaseId) {
+			s.GroupIncreaseId = int32(post.Id)
+		}
+	}
 }
 
 func (s *JsonDb) LoadClientFromJsonFile() {
@@ -136,6 +160,18 @@ func (s *JsonDb) GetHostId() int32 {
 	return atomic.AddInt32(&s.HostIncreaseId, 1)
 }
 
+func (s *JsonDb) GetGroupId() int32 {
+	return atomic.AddInt32(&s.GroupIncreaseId, 1)
+}
+
+var groupLock sync.Mutex
+
+func (s *JsonDb) StoreGroupsToJsonFile() {
+	groupLock.Lock()
+	storeSyncMapToFile(s.Groups, s.GroupFilePath)
+	groupLock.Unlock()
+}
+
 func loadSyncMapFromFile(filePath string, f func(value string)) {
 	b, err := common.ReadAllFromFile(filePath)
 	if err != nil {
@@ -173,6 +209,9 @@ func storeSyncMapToFile(m sync.Map, filePath string) {
 			if obj.NoStore {
 				return true
 			}
+			b, err = json.Marshal(obj)
+		case *ClientGroup:
+			obj := value.(*ClientGroup)
 			b, err = json.Marshal(obj)
 		default:
 			return true

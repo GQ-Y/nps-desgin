@@ -16,6 +16,7 @@ import (
 	"ehang.io/nps/lib/conn"
 	"ehang.io/nps/lib/crypt"
 	"ehang.io/nps/lib/file"
+	"ehang.io/nps/lib/notify"
 	"ehang.io/nps/lib/version"
 	"ehang.io/nps/server/connection"
 	"ehang.io/nps/server/tool"
@@ -211,15 +212,21 @@ func (s *Bridge) cliProcess(c *conn.Conn) {
 
 func (s *Bridge) DelClient(id int) {
 	if v, ok := s.Client.Load(id); ok {
+		addr := ""
 		if v.(*Client).signal != nil {
+			addr = v.(*Client).signal.Conn.RemoteAddr().String()
 			v.(*Client).signal.Close()
 		}
 		s.Client.Delete(id)
+		client, _ := file.GetDb().GetClient(id)
+		if client != nil {
+			notify.Add("offline", id, client.Remark, addr)
+		}
 		if file.GetDb().IsPubClient(id) {
 			return
 		}
-		if c, err := file.GetDb().GetClient(id); err == nil {
-			s.CloseClient <- c.Id
+		if client != nil {
+			s.CloseClient <- client.Id
 		}
 	}
 }
@@ -249,6 +256,9 @@ func (s *Bridge) typeDeal(typeVal string, c *conn.Conn, id int, vs string) {
 		}
 		go s.GetHealthFromClient(id, c)
 		logs.Info("clientId %d connection succeeded, address:%s ", id, c.Conn.RemoteAddr())
+		if client, err := file.GetDb().GetClient(id); err == nil {
+			notify.Add("online", id, client.Remark, c.Conn.RemoteAddr().String())
+		}
 	case common.WORK_CHAN:
 		muxConn := nps_mux.NewMux(c.Conn, s.tunnelType, s.disconnectTime)
 		if v, ok := s.Client.LoadOrStore(id, NewClient(muxConn, nil, nil, vs)); ok {

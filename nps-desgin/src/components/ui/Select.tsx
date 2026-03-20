@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { ChevronDown } from 'lucide-react';
 
 const triggerClass =
@@ -31,7 +32,9 @@ export function Select<T extends string | number>({
   className = '',
 }: SelectProps<T>) {
   const [open, setOpen] = useState(false);
+  const [position, setPosition] = useState({ top: 0, left: 0, width: 0 });
   const ref = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -41,8 +44,44 @@ export function Select<T extends string | number>({
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
+  useEffect(() => {
+    if (open && triggerRef.current) {
+      const rect = triggerRef.current.getBoundingClientRect();
+      setPosition({
+        top: rect.bottom + 4,
+        left: rect.left,
+        width: rect.width,
+      });
+    }
+  }, [open]);
+
   const selected = options.find((o) => o.value === value);
   const display = selected?.label ?? placeholder;
+
+  const dropdown = open && (
+    <div
+      className="fixed z-[9999] bg-surface-container-lowest rounded-xl border border-outline-variant/20 shadow-lg py-1 max-h-60 overflow-auto"
+      style={{ top: position.top, left: position.left, width: position.width, minWidth: 120 }}
+    >
+      {options.map((opt) => (
+        <button
+          key={String(opt.value)}
+          type="button"
+          onClick={() => {
+            onChange(opt.value);
+            setOpen(false);
+          }}
+          className={`w-full px-4 py-2.5 text-left text-sm transition-colors ${
+            opt.value === value
+              ? 'bg-primary/10 text-primary font-medium'
+              : 'text-on-surface hover:bg-surface-container-low'
+          }`}
+        >
+          {opt.label}
+        </button>
+      ))}
+    </div>
+  );
 
   return (
     <div className={className} ref={ref}>
@@ -54,6 +93,7 @@ export function Select<T extends string | number>({
       )}
       <div className="relative">
         <button
+          ref={triggerRef}
           type="button"
           onClick={() => !disabled && setOpen((o) => !o)}
           disabled={disabled}
@@ -65,27 +105,7 @@ export function Select<T extends string | number>({
             className={`text-outline shrink-0 transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
           />
         </button>
-        {open && (
-          <div className="absolute z-50 mt-1 w-full bg-surface-container-lowest rounded-xl border border-outline-variant/20 shadow-lg py-1 max-h-60 overflow-auto">
-            {options.map((opt) => (
-              <button
-                key={String(opt.value)}
-                type="button"
-                onClick={() => {
-                  onChange(opt.value);
-                  setOpen(false);
-                }}
-                className={`w-full px-4 py-2.5 text-left text-sm transition-colors ${
-                  opt.value === value
-                    ? 'bg-primary/10 text-primary font-medium'
-                    : 'text-on-surface hover:bg-surface-container-low'
-                }`}
-              >
-                {opt.label}
-              </button>
-            ))}
-          </div>
-        )}
+        {typeof document !== 'undefined' && dropdown && createPortal(dropdown, document.body)}
       </div>
     </div>
   );

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { User, Lock, ArrowRight } from 'lucide-react';
 import { Input, PasswordInput } from '../components/ui';
 import { motion } from 'motion/react';
@@ -10,6 +11,7 @@ interface RegisterProps {
 }
 
 export function Register({ onSuccess, onBack }: RegisterProps) {
+  const { t } = useTranslation();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -19,7 +21,7 @@ export function Register({ onSuccess, onBack }: RegisterProps) {
     e.preventDefault();
     setError('');
     if (!username.trim() || !password.trim()) {
-      setError('请输入用户名和密码');
+      setError(t('register.emptyInput'));
       return;
     }
     setLoading(true);
@@ -28,10 +30,10 @@ export function Register({ onSuccess, onBack }: RegisterProps) {
       if (res.status === 1) {
         onSuccess();
       } else {
-        setError(res.msg || '注册失败');
+        setError(res.msg || t('register.registerFailed'));
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : '注册失败');
+      setError(err instanceof Error ? err.message : t('register.registerFailed'));
     } finally {
       setLoading(false);
     }
@@ -47,8 +49,8 @@ export function Register({ onSuccess, onBack }: RegisterProps) {
           transition={{ duration: 0.6 }}
           className="relative z-10 max-w-lg"
         >
-          <h1 className="text-5xl font-extrabold text-white tracking-tight mb-4">注册账号</h1>
-          <p className="text-xl text-blue-100 font-light opacity-90">创建新的 Web 管理账号</p>
+          <h1 className="text-5xl font-extrabold text-white tracking-tight mb-4">{t('register.title')}</h1>
+          <p className="text-xl text-blue-100 font-light opacity-90">{t('register.subtitle')}</p>
         </motion.div>
       </section>
 
@@ -60,8 +62,8 @@ export function Register({ onSuccess, onBack }: RegisterProps) {
           className="w-full max-w-md"
         >
           <div className="mb-10">
-            <h2 className="text-3xl font-bold text-on-surface mb-2 tracking-tight">注册</h2>
-            <p className="text-on-surface-variant text-sm">请输入用户名和密码创建账号。</p>
+            <h2 className="text-3xl font-bold text-on-surface mb-2 tracking-tight">{t('register.formTitle')}</h2>
+            <p className="text-on-surface-variant text-sm">{t('register.formDesc')}</p>
           </div>
 
           <form className="space-y-6" onSubmit={handleSubmit}>
@@ -71,20 +73,20 @@ export function Register({ onSuccess, onBack }: RegisterProps) {
               </div>
             )}
             <Input
-              label="用户名"
+              label={t('register.username')}
               id="reg-username"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               leftIcon={<User size={20} />}
-              placeholder="请输入用户名"
+              placeholder={t('register.usernamePlaceholder')}
             />
             <PasswordInput
-              label="密码"
+              label={t('register.password')}
               id="reg-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               leftIcon={<Lock size={20} />}
-              placeholder="请输入密码"
+              placeholder={t('register.passwordPlaceholder')}
             />
 
             <button
@@ -92,7 +94,7 @@ export function Register({ onSuccess, onBack }: RegisterProps) {
               disabled={loading}
               className="w-full flex justify-center items-center gap-2 py-3.5 px-4 bg-gradient-to-r from-primary to-primary-container text-white text-sm font-bold rounded-xl shadow-ambient hover:shadow-lg disabled:opacity-70 disabled:cursor-not-allowed"
             >
-              <span>{loading ? '注册中...' : '注册'}</span>
+              <span>{loading ? t('register.submitting') : t('register.submit')}</span>
               <ArrowRight className="w-4 h-4" />
             </button>
 
@@ -101,7 +103,7 @@ export function Register({ onSuccess, onBack }: RegisterProps) {
               onClick={onBack}
               className="w-full py-2.5 text-sm font-medium text-on-surface-variant hover:text-primary transition-colors"
             >
-              返回登录
+              {t('register.backToLogin')}
             </button>
           </form>
         </motion.div>

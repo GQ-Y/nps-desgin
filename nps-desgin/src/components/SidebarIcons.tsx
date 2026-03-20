@@ -19,25 +19,26 @@ const ICON_PROPS = {
   className: 'transition-all duration-200 shrink-0',
 };
 
-/** 工作台 - 仪表盘/数据看板 */
+/** 工作台 - 仪表盘/数据看板（4 宫格） */
 export function IconDashboard({ active }: { active?: boolean }) {
   return (
     <svg {...ICON_PROPS}>
-      <rect x="3" y="3" width="7" height="9" rx="1" />
-      <rect x="14" y="3" width="7" height="5" rx="1" />
-      <rect x="14" y="10" width="7" height="11" rx="1" />
-      <rect x="3" y="14" width="7" height="7" rx="1" />
+      <rect x="4" y="4" width="7" height="7" rx="1" />
+      <rect x="13" y="4" width="7" height="7" rx="1" />
+      <rect x="4" y="13" width="7" height="7" rx="1" />
+      <rect x="13" y="13" width="7" height="7" rx="1" />
     </svg>
   );
 }
 
-/** 客户端 - 终端/设备 */
+/** 客户端 - 终端/设备（显示器+底座） */
 export function IconClients({ active }: { active?: boolean }) {
   return (
     <svg {...ICON_PROPS}>
-      <rect x="2" y="6" width="20" height="12" rx="2" />
-      <path d="M6 12h.01M10 12h.01M14 12h.01" />
-      <path d="M8 18v2M16 18v2" />
+      <rect x="4" y="5" width="16" height="11" rx="1" />
+      <path d="M8 9h8M8 12h5" />
+      <path d="M10 18v2M14 18v2" />
+      <path d="M9 18h6" />
     </svg>
   );
 }
@@ -46,71 +47,72 @@ export function IconClients({ active }: { active?: boolean }) {
 export function IconDomain({ active }: { active?: boolean }) {
   return (
     <svg {...ICON_PROPS}>
-      <circle cx="12" cy="12" r="10" />
-      <path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+      <circle cx="12" cy="12" r="9" />
+      <path d="M3 12h18" />
+      <path d="M12 3a9 9 0 0 1 0 18 9 9 0 0 1 0-18" />
     </svg>
   );
 }
 
-/** TCP - 双向箭头/链路（对称，24x24 画布内） */
+/** TCP - 双向连接/可靠链路（水平线+两端箭头） */
 export function IconTcp({ active }: { active?: boolean }) {
   return (
     <svg {...ICON_PROPS}>
-      <path d="M8 16L16 8M16 8h-4M16 8v4" />
-      <path d="M16 16L8 8M8 8h4M8 8v4" />
+      <path d="M6 12h10" />
+      <path d="M8 10L6 12l2 2" />
+      <path d="M14 10l2 2-2 2" />
     </svg>
   );
 }
 
-/** UDP - 数据报 */
+/** UDP - 数据报（信封/报文） */
 export function IconUdp({ active }: { active?: boolean }) {
   return (
     <svg {...ICON_PROPS}>
-      <path d="M4 12v6a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-6" />
-      <path d="M4 6h16M4 10h16M8 14h8" />
+      <rect x="4" y="6" width="16" height="12" rx="1" />
+      <path d="M4 10l8 4 8-4" />
     </svg>
   );
 }
 
-/** HTTP 代理 - 网关 */
+/** HTTP 代理 - 网关（方框+穿透箭头） */
 export function IconHttp({ active }: { active?: boolean }) {
   return (
     <svg {...ICON_PROPS}>
-      <rect x="3" y="3" width="18" height="18" rx="2" />
-      <path d="M7 8h2l1 4 1-4h2M16 12h-2v2" />
-      <path d="M14 12v4h2" />
+      <rect x="4" y="4" width="16" height="16" rx="2" />
+      <path d="M8 12h5M16 12l-2-2v4l2-2" />
     </svg>
   );
 }
 
-/** SOCKS5 - 代理层 */
+/** SOCKS5 - 代理层（套接字/通道） */
 export function IconSocks5({ active }: { active?: boolean }) {
   return (
     <svg {...ICON_PROPS}>
-      <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
-      <circle cx="12" cy="12" r="3" />
+      <path d="M12 4v4M12 16v4M4 12h4M16 12h4" />
+      <circle cx="12" cy="12" r="4" />
     </svg>
   );
 }
 
-/** Secret 隧道 - 密钥/通道 */
+/** Secret 隧道 - 密钥/隐蔽通道（锁孔+斜线） */
 export function IconSecret({ active }: { active?: boolean }) {
   return (
     <svg {...ICON_PROPS}>
-      <path d="M12 2L2 7l10 5 10-5-10-5z" />
-      <path d="M2 17l10 5 10-5" />
-      <path d="M7 9v8M17 9v8" />
+      <rect x="5" y="9" width="14" height="10" rx="2" />
+      <path d="M9 9V7a3 3 0 0 1 6 0v2" />
+      <circle cx="12" cy="14" r="2" />
     </svg>
   );
 }
 
-/** P2P - 点对点 */
+/** P2P - 点对点（双节点+连线） */
 export function IconP2p({ active }: { active?: boolean }) {
   return (
     <svg {...ICON_PROPS}>
-      <circle cx="7" cy="12" r="3" />
-      <circle cx="17" cy="12" r="3" />
-      <path d="M10 12h4" />
+      <circle cx="6" cy="12" r="3" />
+      <circle cx="18" cy="12" r="3" />
+      <path d="M9 12h6" />
     </svg>
   );
 }
@@ -119,19 +121,18 @@ export function IconP2p({ active }: { active?: boolean }) {
 export function IconFile({ active }: { active?: boolean }) {
   return (
     <svg {...ICON_PROPS}>
-      <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
-      <path d="M12 11v6M9 14h6" />
+      <path d="M4 6h7l2 2h7a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1" />
     </svg>
   );
 }
 
-/** 帮助 */
+/** 帮助 - 问号 */
 export function IconHelp({ active }: { active?: boolean }) {
   return (
     <svg {...ICON_PROPS}>
-      <circle cx="12" cy="12" r="10" />
-      <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
-      <path d="M12 17h.01" />
+      <circle cx="12" cy="12" r="9" />
+      <path d="M9.5 9.5a2.5 2.5 0 0 1 4.2 1.8c0 1.5-1.5 2.5-2.5 3" />
+      <circle cx="12" cy="16" r="1.5" />
     </svg>
   );
 }

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Sidebar } from '../components/Sidebar';
 import { Header } from '../components/Header';
 import { Card } from '../components/Shared';
@@ -11,26 +12,27 @@ export function Help({
   onNavigate: (view: string) => void;
   onLogout?: () => void;
 }) {
-  const [ip, setIp] = useState('服务器IP');
-  const [p, setP] = useState('端口');
+  const { t } = useTranslation();
+  const [ip, setIp] = useState(t('help.serverIpPlaceholder'));
+  const [p, setP] = useState(t('help.portPlaceholder'));
 
   useEffect(() => {
     getDashboard()
       .then((d) => {
         const d2 = d as { ip?: string; p?: number };
-        setIp(String(d2.ip ?? '服务器IP'));
-        setP(String(d2.p ?? '端口'));
+        setIp(String(d2.ip ?? t('help.serverIpPlaceholder')));
+        setP(String(d2.p ?? t('help.portPlaceholder')));
       })
       .catch(() => {});
   }, []);
 
-  const cmd = `./npc -server=${ip}:${p} -vkey=客户端的密钥`;
+  const cmd = `./npc -server=${ip}:${p} -vkey=${t('help.clientKeyPlaceholder')}`;
 
   return (
     <div className="min-h-screen bg-surface">
       <Sidebar currentView="help" onNavigate={onNavigate} />
       <Header
-        breadcrumbs={[{ label: '工作台', view: 'dashboard' }, { label: '帮助' }]}
+        breadcrumbs={[{ labelKey: 'sidebar.dashboard', view: 'dashboard' }, { labelKey: 'help.title' }]}
         onNavigate={onNavigate}
         onLogout={onLogout}
       />
@@ -65,7 +67,7 @@ export function Help({
           </div>
 
           <Card>
-            <h3 className="text-lg font-bold text-on-surface mb-4">域名代理模式</h3>
+            <h3 className="text-lg font-bold text-on-surface mb-4">{t('help.domainExample')}</h3>
             <p className="text-on-surface-variant text-sm mb-2">
               <b>适用范围：</b> 小程序开发、微信公众号开发、产品演示
             </p>
@@ -92,7 +94,7 @@ export function Help({
 
           <div className="grid md:grid-cols-2 gap-6">
             <Card>
-              <h3 className="text-lg font-bold text-on-surface mb-4">TCP 隧道模式</h3>
+              <h3 className="text-lg font-bold text-on-surface mb-4">{t('help.tcpExample')}</h3>
               <p className="text-on-surface-variant text-sm mb-2">
                 <b>适用范围：</b> ssh、远程桌面等 tcp 连接场景
               </p>
@@ -112,7 +114,7 @@ export function Help({
             </Card>
 
             <Card>
-              <h3 className="text-lg font-bold text-on-surface mb-4">UDP 隧道模式</h3>
+              <h3 className="text-lg font-bold text-on-surface mb-4">{t('help.udpExample')}</h3>
               <p className="text-on-surface-variant text-sm mb-2">
                 <b>适用范围：</b> 内网 dns 解析等 udp 连接场景
               </p>
@@ -134,7 +136,7 @@ export function Help({
 
           <div className="grid md:grid-cols-2 gap-6">
             <Card>
-              <h3 className="text-lg font-bold text-on-surface mb-4">SOCKS5 代理模式</h3>
+              <h3 className="text-lg font-bold text-on-surface mb-4">{t('help.socks5Example')}</h3>
               <p className="text-on-surface-variant text-sm mb-2">
                 <b>适用范围：</b> 在外网环境下如同使用 vpn 一样访问内网设备或者资源
               </p>
@@ -154,7 +156,7 @@ export function Help({
             </Card>
 
             <Card>
-              <h3 className="text-lg font-bold text-on-surface mb-4">HTTP 代理模式</h3>
+              <h3 className="text-lg font-bold text-on-surface mb-4">{t('help.httpExample')}</h3>
               <p className="text-on-surface-variant text-sm mb-2">
                 <b>适用范围：</b> 在外网环境下访问内网站点
               </p>
@@ -175,7 +177,7 @@ export function Help({
           </div>
 
           <Card>
-            <p className="text-on-surface-variant text-sm"><b>单个客户端可以添加多条隧道或者域名解析</b></p>
+            <p className="text-on-surface-variant text-sm"><b>{t('help.multiTunnelNote')}</b></p>
           </Card>
         </div>
       </main>

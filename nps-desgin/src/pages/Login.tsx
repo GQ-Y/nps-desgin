@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { User, Lock, ArrowRight } from 'lucide-react';
 import { Input, PasswordInput } from '../components/ui';
 import { motion } from 'motion/react';
@@ -10,6 +11,7 @@ interface LoginProps {
 }
 
 export function Login({ onLogin, onNavigateRegister }: LoginProps) {
+  const { t } = useTranslation();
   const [username, setUsername] = useState('admin');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -29,10 +31,10 @@ export function Login({ onLogin, onNavigateRegister }: LoginProps) {
       if (res.status === 1) {
         onLogin();
       } else {
-        setError(res.msg || '用户名或密码错误');
+        setError(res.msg || t('login.wrongCredential'));
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : '登录失败');
+      setError(err instanceof Error ? err.message : t('login.loginFailed'));
     } finally {
       setLoading(false);
     }
@@ -56,19 +58,19 @@ export function Login({ onLogin, onNavigateRegister }: LoginProps) {
             </div>
           </div>
           <h1 className="text-6xl font-extrabold text-white tracking-tight mb-4 leading-tight">
-            NPS 管理端
+            {t('login.title')}
           </h1>
           <p className="text-xl text-blue-100 font-light tracking-wide mb-12 opacity-90">
-            内网穿透与代理管理平台
+            {t('login.subtitle')}
           </p>
           <div className="grid grid-cols-2 gap-4">
             <div className="glass-panel p-6 rounded-2xl">
-              <h3 className="text-white font-semibold mb-1">安全隧道</h3>
-              <p className="text-blue-100/60 text-xs leading-relaxed">客户端节点加密通信，保障数据安全。</p>
+              <h3 className="text-white font-semibold mb-1">{t('login.secureTunnel')}</h3>
+              <p className="text-blue-100/60 text-xs leading-relaxed">{t('login.secureTunnelDesc')}</p>
             </div>
             <div className="glass-panel p-6 rounded-2xl">
-              <h3 className="text-white font-semibold mb-1">实时监控</h3>
-              <p className="text-blue-100/60 text-xs leading-relaxed">流量与连接状态实时展示。</p>
+              <h3 className="text-white font-semibold mb-1">{t('login.realtimeMonitor')}</h3>
+              <p className="text-blue-100/60 text-xs leading-relaxed">{t('login.realtimeMonitorDesc')}</p>
             </div>
           </div>
         </motion.div>
@@ -84,12 +86,12 @@ export function Login({ onLogin, onNavigateRegister }: LoginProps) {
         >
           <div className="md:hidden flex items-center gap-3 mb-8">
             <NetworkIcon className="text-primary w-8 h-8" />
-            <span className="text-2xl font-bold text-on-surface">NPS 管理端</span>
+            <span className="text-2xl font-bold text-on-surface">{t('login.title')}</span>
           </div>
 
           <div className="mb-10">
-            <h2 className="text-3xl font-bold text-on-surface mb-2 tracking-tight">登录</h2>
-            <p className="text-on-surface-variant text-sm">请输入账号密码登录管理后台。</p>
+            <h2 className="text-3xl font-bold text-on-surface mb-2 tracking-tight">{t('login.formTitle')}</h2>
+            <p className="text-on-surface-variant text-sm">{t('login.formDesc')}</p>
           </div>
 
           <form className="space-y-6" onSubmit={handleSubmit}>
@@ -99,19 +101,19 @@ export function Login({ onLogin, onNavigateRegister }: LoginProps) {
               </div>
             )}
             <Input
-              label="用户名"
+              label={t('login.username')}
               type="text"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               leftIcon={<User size={20} />}
-              placeholder="请输入用户名"
+              placeholder={t('login.usernamePlaceholder')}
             />
             <PasswordInput
-              label="密码"
+              label={t('login.password')}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               leftIcon={<Lock size={20} />}
-              placeholder="请输入密码"
+              placeholder={t('login.passwordPlaceholder')}
             />
 
             <button
@@ -119,15 +121,15 @@ export function Login({ onLogin, onNavigateRegister }: LoginProps) {
               disabled={loading}
               className="w-full flex justify-center items-center gap-2 py-3.5 px-4 bg-gradient-to-r from-primary to-primary-container text-white text-sm font-bold rounded-xl shadow-ambient hover:shadow-lg hover:shadow-primary/20 active:scale-[0.98] transition-all disabled:opacity-70 disabled:cursor-not-allowed"
             >
-              <span>{loading ? '登录中...' : '登录'}</span>
+              <span>{loading ? t('login.submitting') : t('login.submit')}</span>
               <ArrowRight className="w-4 h-4" />
             </button>
 
             {allowRegister && onNavigateRegister && (
               <p className="text-center text-sm text-on-surface-variant">
-                还没有账号？{' '}
+                {t('login.noAccount')}{' '}
                 <button type="button" onClick={onNavigateRegister} className="text-primary font-medium hover:underline">
-                  立即注册
+                  {t('login.registerNow')}
                 </button>
               </p>
             )}

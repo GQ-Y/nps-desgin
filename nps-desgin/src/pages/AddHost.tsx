@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Sidebar } from '../components/Sidebar';
 import { Header } from '../components/Header';
 import { Card, PageTransition } from '../components/Shared';
@@ -14,6 +15,7 @@ export function AddHost({
   onNavigate: (view: string) => void;
   onLogout?: () => void;
 }) {
+  const { t } = useTranslation();
   const [clientId, setClientId] = useState(initialClientId);
   const [clients, setClients] = useState<{ Id: number; Remark?: string }[]>([]);
   const [config, setConfig] = useState<{
@@ -70,10 +72,10 @@ export function AddHost({
       if (res.status === 1) {
         onNavigate(clientId ? `domain-${clientId}` : 'domain');
       } else {
-        setError(res.msg || '添加失败');
+        setError(res.msg || t('client.addFailed'));
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : '添加失败');
+      setError(err instanceof Error ? err.message : t('client.addFailed'));
     } finally {
       setLoading(false);
     }
@@ -84,9 +86,9 @@ export function AddHost({
       <Sidebar currentView="domain" onNavigate={onNavigate} />
       <Header
         breadcrumbs={[
-          { label: '工作台', view: 'dashboard' },
-          { label: clientId ? `客户端 ${clientId} - 域名解析` : '域名解析' },
-          { label: '添加域名' },
+          { labelKey: 'sidebar.dashboard', view: 'dashboard' },
+          { label: clientId ? t('client.clientDetail', { id: clientId }) : t('sidebar.domain') },
+          { labelKey: 'domain.addDomain' },
         ]}
         onNavigate={onNavigate}
         onLogout={onLogout}
@@ -95,8 +97,8 @@ export function AddHost({
       <main className="ml-64 pt-20 px-10 pb-10 max-w-3xl mx-auto">
         <PageTransition>
           <div className="mb-8">
-            <h2 className="text-2xl font-bold text-on-surface">添加域名解析</h2>
-            <p className="text-on-surface-variant text-sm mt-1">配置域名与内网目标映射。</p>
+            <h2 className="text-2xl font-bold text-on-surface">{t('domain.addHost')}</h2>
+            <p className="text-on-surface-variant text-sm mt-1">{t('domain.addDesc')}</p>
           </div>
 
           <form id="add-host-form" onSubmit={handleSubmit} className="space-y-6">
@@ -109,33 +111,33 @@ export function AddHost({
             <Card>
               <div className="space-y-4">
                 {initialClientId ? (
-                  <Input label="客户端" type="text" value={String(clientId)} readOnly inputClassName="opacity-80" />
+                  <Input label={t('domain.client')} type="text" value={String(clientId)} readOnly inputClassName="opacity-80" />
                 ) : (
                   <Select
-                    label="客户端"
+                    label={t('domain.client')}
                     value={clientId}
                     onChange={(v) => setClientId(v as number)}
                     options={[
-                      { value: 0, label: '请选择客户端' },
-                      ...clients.map((c) => ({ value: c.Id, label: `${c.Id} - ${c.Remark || '未命名'}` })),
+                      { value: 0, label: t('domain.selectClient') },
+                      ...clients.map((c) => ({ value: c.Id, label: `${c.Id} - ${c.Remark || t('tunnel.unnamed')}` })),
                     ]}
                     required
                   />
                 )}
-                <Input label="备注" value={remark} onChange={(e) => setRemark(e.target.value)} placeholder="可选" />
+                <Input label={t('tunnel.remark')} value={remark} onChange={(e) => setRemark(e.target.value)} placeholder={t('common.optional')} />
                 <Input
-                  label="域名"
+                  label={t('domain.domain')}
                   value={host}
                   onChange={(e) => setHost(e.target.value)}
-                  placeholder="例如 a.proxy.com"
+                  placeholder={t('domain.domainPlaceholder')}
                   required
                 />
                 <Select
-                  label="协议"
+                  label={t('domain.protocol')}
                   value={scheme}
                   onChange={(v) => setScheme(v)}
                   options={[
-                    { value: 'all', label: '全部' },
+                    { value: 'all', label: t('domain.all') },
                     { value: 'http', label: 'HTTP' },
                     { value: 'https', label: 'HTTPS' },
                   ]}
@@ -143,55 +145,55 @@ export function AddHost({
                 {showCertFields && (
                   <>
                     <Input
-                      label="HTTPS 证书路径"
+                      label={t('domain.httpsCert')}
                       value={certFilePath}
                       onChange={(e) => setCertFilePath(e.target.value)}
-                      placeholder="可选"
+                      placeholder={t('common.optional')}
                     />
                     <Input
-                      label="HTTPS 密钥路径"
+                      label={t('domain.httpsKey')}
                       value={keyFilePath}
                       onChange={(e) => setKeyFilePath(e.target.value)}
-                      placeholder="可选"
+                      placeholder={t('common.optional')}
                     />
                   </>
                 )}
                 <Input
-                  label="URL 路由"
+                  label={t('domain.urlRoute')}
                   value={location}
                   onChange={(e) => setLocation(e.target.value)}
-                  placeholder="可选"
+                  placeholder={t('common.optional')}
                 />
                 {config.allow_local_proxy && (
                   <Select
-                    label="代理到本地"
+                    label={t('domain.localProxy')}
                     value={localProxy ? '1' : '0'}
                     onChange={(v) => setLocalProxy(v === '1')}
                     options={[
-                      { value: '0', label: '否' },
-                      { value: '1', label: '是' },
+                      { value: '0', label: t('common.no') },
+                      { value: '1', label: t('common.yes') },
                     ]}
                   />
                 )}
                 <Textarea
-                  label="内网目标"
+                  label={t('domain.target')}
                   value={target}
                   onChange={(e) => setTarget(e.target.value)}
                   rows={4}
-                  placeholder="例如 127.0.0.1:81，支持多行"
+                  placeholder={t('domain.targetPlaceholder')}
                 />
                 <Textarea
-                  label="请求头"
+                  label={t('domain.requestHeader')}
                   value={header}
                   onChange={(e) => setHeader(e.target.value)}
                   rows={3}
-                  placeholder="例如 Cache-Control: no-cache"
+                  placeholder={t('domain.requestHeaderPlaceholder')}
                 />
                 <Input
-                  label="请求 Host"
+                  label={t('domain.requestHost')}
                   value={hostchange}
                   onChange={(e) => setHostchange(e.target.value)}
-                  placeholder="可选"
+                  placeholder={t('common.optional')}
                 />
               </div>
             </Card>
@@ -205,7 +207,7 @@ export function AddHost({
           onClick={() => onNavigate(clientId ? `domain-${clientId}` : 'domain')}
           className="px-6 py-2.5 rounded-xl text-sm font-bold text-on-surface-variant bg-surface-container-high hover:bg-surface-dim transition-all"
         >
-          取消
+          {t('common.cancel')}
         </button>
         <button
           type="submit"
@@ -213,7 +215,7 @@ export function AddHost({
           disabled={loading}
           className="px-8 py-2.5 rounded-xl text-sm font-bold text-white bg-primary shadow-ambient hover:shadow-lg disabled:opacity-70"
         >
-          {loading ? '添加中...' : '添加'}
+          {loading ? t('common.adding') : t('common.add')}
         </button>
       </div>
     </div>
