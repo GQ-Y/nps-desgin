@@ -1,0 +1,76 @@
+import React from 'react';
+import { Globe2, UserCircle, LogOut, ChevronRight, Bell } from 'lucide-react';
+
+interface HeaderProps {
+  breadcrumbs: { label: string; view?: string }[];
+  onNavigate: (view: string) => void;
+  showTabs?: boolean;
+}
+
+export function Header({ breadcrumbs, onNavigate, showTabs = false }: HeaderProps) {
+  return (
+    <header className="fixed top-0 right-0 w-[calc(100%-16rem)] h-14 bg-surface-container-lowest/80 backdrop-blur-md flex justify-between items-center px-8 z-40">
+      <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 text-sm">
+          {breadcrumbs.map((crumb, index) => (
+            <React.Fragment key={index}>
+              {index > 0 && <ChevronRight size={14} className="text-outline" />}
+              <span 
+                className={`${index === breadcrumbs.length - 1 ? 'text-on-surface font-semibold' : 'text-on-surface-variant cursor-pointer hover:text-primary transition-colors'}`}
+                onClick={() => crumb.view && onNavigate(crumb.view)}
+              >
+                {crumb.label}
+              </span>
+            </React.Fragment>
+          ))}
+          
+          {/* Environment Tag (Optional, shown on dashboard) */}
+          {breadcrumbs[0].label === 'Dashboard' && (
+            <span className="ml-4 px-2 py-0.5 rounded text-[10px] font-bold bg-primary-fixed text-primary uppercase tracking-tighter">
+              Production
+            </span>
+          )}
+        </div>
+      </div>
+
+      <div className="flex items-center gap-6">
+        {showTabs && (
+          <div className="flex items-center gap-6 border-r border-outline-variant/30 pr-6 h-14">
+            <button 
+              onClick={() => onNavigate('dashboard')}
+              className="text-on-surface-variant hover:text-primary text-sm font-medium transition-all"
+            >
+              Dashboard
+            </button>
+            <button className="text-primary font-medium text-sm border-b-2 border-primary h-full flex items-center transition-all">
+              Active Clients
+            </button>
+          </div>
+        )}
+
+        <div className="flex items-center gap-4">
+          {breadcrumbs[0].label === 'Dashboard' && (
+            <button className="text-outline hover:text-primary transition-colors relative">
+              <Bell size={18} />
+              <span className="absolute top-0 right-0 w-2 h-2 bg-error rounded-full border border-surface-container-lowest"></span>
+            </button>
+          )}
+          <button className="text-outline hover:text-primary transition-colors">
+            <Globe2 size={18} />
+          </button>
+          
+          <div className="flex items-center gap-2 cursor-pointer group">
+            <div className="w-7 h-7 rounded-full bg-primary-fixed flex items-center justify-center text-primary overflow-hidden">
+               <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Admin&backgroundColor=dbe1ff" alt="User" className="w-full h-full object-cover" />
+            </div>
+            <span className="text-sm font-medium text-on-surface group-hover:text-primary transition-colors">Admin</span>
+          </div>
+
+          <button className="text-outline hover:text-error transition-colors ml-2">
+            <LogOut size={18} />
+          </button>
+        </div>
+      </div>
+    </header>
+  );
+}
