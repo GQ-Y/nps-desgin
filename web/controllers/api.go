@@ -60,6 +60,13 @@ func (c *ApiController) Dashboard() {
 	data["allow_user_register"] = allowUserRegister
 	data["allow_user_change_username"] = allowUserChangeUsername
 	data["isAdmin"] = isAdmin
+	if isAdmin {
+		data["username"] = beego.AppConfig.String("web_username")
+	} else {
+		if u := c.GetSession("username"); u != nil {
+			data["username"] = u.(string)
+		}
+	}
 	data["ip"] = ip
 	data["p"] = server.Bridge.TunnelPort
 	data["bridgeType"] = beego.AppConfig.String("bridge_type")
@@ -243,6 +250,81 @@ func (c *ApiController) GroupMoveClient() {
 		c.ServeJSON()
 		return
 	}
+	c.Data["json"] = map[string]interface{}{"status": 1, "msg": "ok"}
+	c.ServeJSON()
+}
+
+// UserChangePassword 修改当前登录用户密码（管理员改 web_password 写入 nps.conf；客户端用户改 clients.json）
+func (c *ApiController) UserChangePassword() {
+	if c.GetSession("auth") != true {
+		c.Ctx.Output.Status = 401
+		c.Data["json"] = map[string]interface{}{"status": 0, "msg": "未登录"}
+		c.ServeJSON()
+		return
+	}
+	oldPw := getParam(c, "old_password")
+	newPw := getParam(c, "new_password")
+	if len(newPw) < 6 {
+		c.Data["json"] = map[string]interface{}{"status": 0, "msg": "新密码至少 6 位"}
+		c.ServeJSON()
+		return
+	}
+	if oldPw == newPw {
+		c.Data["json"] = map[string]interface{}{"status": 0, "msg": "新密码不能与旧密码相同"}
+		c.ServeJSON()
+		return
+	}
+	if c.GetSession("isAdmin") == true {
+		if oldPw != EffectiveWebPassword() {
+			c.Data["json"] = map[string]interface{}{"status": 0, "msg": "原密码错误"}
+			c.ServeJSON()
+			return
+		}
+		if err := SaveWebPasswordToConf(newPw); err != nil {
+			c.Data["json"] = map[string]interface{}{"status": 0, "msg": err.Error()}
+			c.ServeJSON()
+			return
+		}
+		SetWebPasswordOverride(newPw)
+		c.Data["json"] = map[string]interface{}{"status": 1, "msg": "ok"}
+		c.ServeJSON()
+		return
+	}
+	sid := c.GetSession("clientId")
+	if sid == nil {
+		c.Data["json"] = map[string]interface{}{"status": 0, "msg": "无权修改"}
+		c.ServeJSON()
+		return
+	}
+	clientId, ok := sid.(int)
+	if !ok {
+		c.Data["json"] = map[string]interface{}{"status": 0, "msg": "会话无效"}
+		c.ServeJSON()
+		return
+	}
+	cl, err := file.GetDb().GetClient(clientId)
+	if err != nil {
+		c.Data["json"] = map[string]interface{}{"status": 0, "msg": err.Error()}
+		c.ServeJSON()
+		return
+	}
+	if cl.WebUserName == "" && cl.WebPassword == "" {
+		if oldPw != cl.VerifyKey {
+			c.Data["json"] = map[string]interface{}{"status": 0, "msg": "原密码错误"}
+			c.ServeJSON()
+			return
+		}
+		cl.WebUserName = "user"
+		cl.WebPassword = newPw
+	} else {
+		if oldPw != cl.WebPassword {
+			c.Data["json"] = map[string]interface{}{"status": 0, "msg": "原密码错误"}
+			c.ServeJSON()
+			return
+		}
+		cl.WebPassword = newPw
+	}
+	file.GetDb().JsonDb.StoreClientsToJsonFile()
 	c.Data["json"] = map[string]interface{}{"status": 1, "msg": "ok"}
 	c.ServeJSON()
 }

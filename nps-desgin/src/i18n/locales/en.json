@@ -37,6 +37,7 @@
     "p2p": "P2P",
     "fileService": "File Service",
     "help": "Help",
+    "userCenter": "Account",
     "npsAdmin": "NPS Admin",
     "intranetPenetration": "Intranet Penetration"
   },
@@ -48,6 +49,21 @@
     "admin": "Admin",
     "logout": "Logout",
     "user": "User"
+  },
+  "userCenter": {
+    "title": "Account",
+    "roleAdmin": "Administrator",
+    "roleUser": "Signed in as",
+    "oldPassword": "Current password",
+    "newPassword": "New password",
+    "confirmPassword": "Confirm new password",
+    "passwordHint": "At least 6 characters",
+    "submit": "Change password",
+    "saving": "Saving…",
+    "changeSuccess": "Password updated",
+    "changeFailed": "Failed to change password",
+    "passwordTooShort": "New password must be at least 6 characters",
+    "passwordMismatch": "New passwords do not match"
   },
   "dashboard": {
     "systemOverview": "System Overview",

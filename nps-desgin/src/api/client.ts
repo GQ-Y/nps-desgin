@@ -115,6 +115,8 @@ export interface DashboardData {
   io_recv?: number;
   tcp?: number;
   udp?: number;
+  isAdmin?: boolean;
+  username?: string;
   [key: string]: unknown;
 }
 
@@ -122,6 +124,22 @@ export async function getDashboard(): Promise<DashboardData> {
   const res = await fetch(apiUrl('/api/dashboard'), { ...defaultOptions, method: 'GET' });
   if (res.status === 401) throw new Error('未登录');
   return handleResponse<DashboardData>(res);
+}
+
+export async function changePassword(oldPassword: string, newPassword: string): Promise<void> {
+  const res = await fetch(apiUrl('/api/user/change-password'), {
+    ...defaultOptions,
+    method: 'POST',
+    headers: {
+      ...defaultOptions.headers,
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+    body: formBody({ old_password: oldPassword, new_password: newPassword }),
+  });
+  const data = await handleResponse<{ status: number; msg: string }>(res);
+  if (data.status !== 1) {
+    throw new Error(data.msg || '修改失败');
+  }
 }
 
 // --- 通知 ---

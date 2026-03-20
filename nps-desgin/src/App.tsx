@@ -12,6 +12,7 @@ import { EditTunnel } from './pages/EditTunnel';
 import { AddHost } from './pages/AddHost';
 import { EditHost } from './pages/EditHost';
 import { Help } from './pages/Help';
+import { UserCenter } from './pages/UserCenter';
 import { getDashboard } from './api/client';
 import { AppLoadSkeleton } from './components/Shared';
 
@@ -106,6 +107,7 @@ export default function App() {
         />
       )}
       {currentView === 'help' && <Help onNavigate={navigate} onLogout={goLogin} />}
+      {currentView === 'user-center' && <UserCenter onNavigate={navigate} onLogout={goLogin} />}
       {currentView.startsWith('tunnel-all-') && (
         <TunnelList
           tunnelType="all"

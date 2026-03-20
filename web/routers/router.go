@@ -20,6 +20,7 @@ func Init() {
 			// 使用 move-group 而非 move：部分环境下路径段 "move" 无法正确注册为路由
 			beego.NSRouter("/api/groups/move-group", &controllers.ApiController{}, "post:GroupMove"),
 			beego.NSRouter("/api/groups/move-client", &controllers.ApiController{}, "post:GroupMoveClient"),
+			beego.NSRouter("/api/user/change-password", &controllers.ApiController{}, "post:UserChangePassword"),
 			beego.NSAutoRouter(&controllers.IndexController{}),
 			beego.NSAutoRouter(&controllers.LoginController{}),
 			beego.NSAutoRouter(&controllers.ClientController{}),
@@ -37,6 +38,7 @@ func Init() {
 		beego.Router("/api/groups/del", &controllers.ApiController{}, "post:GroupDel")
 		beego.Router("/api/groups/move-group", &controllers.ApiController{}, "post:GroupMove")
 		beego.Router("/api/groups/move-client", &controllers.ApiController{}, "post:GroupMoveClient")
+		beego.Router("/api/user/change-password", &controllers.ApiController{}, "post:UserChangePassword")
 		beego.AutoRouter(&controllers.IndexController{})
 		beego.AutoRouter(&controllers.LoginController{})
 		beego.AutoRouter(&controllers.ClientController{})

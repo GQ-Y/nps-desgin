@@ -1,6 +1,6 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { Terminal } from 'lucide-react';
+import { Terminal, User } from 'lucide-react';
 import {
   IconDashboard,
   IconClients,
@@ -105,7 +105,24 @@ export function Sidebar({ currentView, onNavigate }: SidebarProps) {
         ))}
       </nav>
 
-      <div className="mt-auto pt-4 border-t border-outline-variant/20">
+      <div className="mt-auto pt-4 border-t border-outline-variant/20 space-y-1">
+        <button
+          type="button"
+          onClick={() => onNavigate('user-center')}
+          className={`relative w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors duration-150 text-sm font-medium ${
+            currentView === 'user-center'
+              ? 'bg-primary/10 text-primary'
+              : 'text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface'
+          }`}
+        >
+          {currentView === 'user-center' && (
+            <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 bg-primary rounded-r-full" />
+          )}
+          <span className={`shrink-0 transition-colors duration-150 ${currentView === 'user-center' ? 'text-primary' : 'text-outline'}`}>
+            <User size={20} strokeWidth={1.75} />
+          </span>
+          <span className={currentView === 'user-center' ? 'font-semibold' : ''}>{t('sidebar.userCenter')}</span>
+        </button>
         <NavButton
           item={{ id: 'help', labelKey: 'sidebar.help', Icon: IconHelp }}
           isActive={currentView === 'help'}

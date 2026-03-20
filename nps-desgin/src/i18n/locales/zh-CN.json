@@ -37,6 +37,7 @@
     "p2p": "P2P",
     "fileService": "文件服务",
     "help": "帮助",
+    "userCenter": "用户中心",
     "npsAdmin": "NPS 管理端",
     "intranetPenetration": "内网穿透"
   },
@@ -48,6 +49,21 @@
     "admin": "管理员",
     "logout": "退出登录",
     "user": "用户"
+  },
+  "userCenter": {
+    "title": "用户中心",
+    "roleAdmin": "管理员账号",
+    "roleUser": "登录账号",
+    "oldPassword": "当前密码",
+    "newPassword": "新密码",
+    "confirmPassword": "确认新密码",
+    "passwordHint": "至少 6 位字符",
+    "submit": "修改密码",
+    "saving": "提交中…",
+    "changeSuccess": "密码已更新",
+    "changeFailed": "修改失败",
+    "passwordTooShort": "新密码至少 6 位",
+    "passwordMismatch": "两次输入的新密码不一致"
   },
   "dashboard": {
     "systemOverview": "系统概览",
