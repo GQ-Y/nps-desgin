@@ -1,166 +1,371 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Sidebar } from '../components/Sidebar';
 import { Header } from '../components/Header';
-import { Card, PageTransition } from '../components/Shared';
-import { 
-  PlusCircle, 
-  Settings2, 
-  Globe, 
-  History, 
-  Activity, 
-  TrendingUp, 
+import { Card, DashboardSkeleton } from '../components/Shared';
+import {
+  PlusCircle,
+  Settings2,
+  Globe,
+  History,
+  Activity,
+  TrendingUp,
   AlertTriangle,
-  CheckCircle2
+  CheckCircle2,
 } from 'lucide-react';
+import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip, LineChart, Line, XAxis, YAxis, CartesianGrid } from 'recharts';
+import { getDashboard, type DashboardData } from '../api/client';
 
-export function Dashboard({ onNavigate }: { onNavigate: (view: string) => void }) {
+function formatBytes(n: number): string {
+  if (n >= 1024 * 1024 * 1024) return (n / 1024 / 1024 / 1024).toFixed(1) + ' GB';
+  if (n >= 1024 * 1024) return (n / 1024 / 1024).toFixed(1) + ' MB';
+  if (n >= 1024) return (n / 1024).toFixed(1) + ' KB';
+  return n + ' B';
+}
+
+export function Dashboard({ onNavigate, onLogout }: { onNavigate: (view: string) => void; onLogout?: () => void }) {
+  const [data, setData] = useState<DashboardData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    getDashboard()
+      .then(setData)
+      .catch((e) => {
+        const msg = e instanceof Error ? e.message : '加载失败';
+        setError(msg);
+        if (msg === '未登录') onLogout?.();
+      })
+      .finally(() => setLoading(false));
+  }, [onLogout]);
+
+  const clientCount = data?.clientCount ?? 0;
+  const clientOnline = data?.clientOnlineCount ?? 0;
+  const offlineCount = Math.max(0, clientCount - clientOnline);
+  const onlineRate = clientCount > 0 ? ((clientOnline / clientCount) * 100).toFixed(1) : '0';
+  const tcpCount = data?.tcpCount ?? 0;
+  const totalTunnels =
+    (data?.tcpC ?? 0) +
+    (data?.udpCount ?? 0) +
+    (data?.socks5Count ?? 0) +
+    (data?.httpProxyCount ?? 0) +
+    (data?.secretCount ?? 0) +
+    (data?.p2pCount ?? 0);
+  const hostCount = data?.hostCount ?? 0;
+
   return (
     <div className="min-h-screen bg-surface">
       <Sidebar currentView="dashboard" onNavigate={onNavigate} />
-      <Header 
-        breadcrumbs={[{ label: 'Dashboard' }, { label: 'System Overview' }]} 
-        onNavigate={onNavigate} 
+      <Header
+        breadcrumbs={[{ label: '工作台' }, { label: '系统概览' }]}
+        onNavigate={onNavigate}
+        onLogout={onLogout}
       />
 
-      <main className="ml-64 pt-14 p-8 space-y-6">
-        {/* Global Alert */}
-        <div className="bg-alert-bg border border-warning/20 rounded-xl px-4 py-3 flex items-center justify-between mt-4">
-          <div className="flex items-center gap-2 text-sm text-warning font-medium">
+      <main className="ml-64 pt-20 px-8 pb-10 space-y-6">
+        {error && (
+          <div className="bg-error/10 border border-error/30 rounded-xl px-4 py-3 text-sm text-error flex items-center gap-2">
             <AlertTriangle size={16} />
-            <span>System detected 2 offline clients. Please check network connection status.</span>
+            {error}
           </div>
-          <button className="text-sm text-primary font-semibold hover:underline">Resolve</button>
-        </div>
+        )}
 
-        {/* Quick Actions */}
+        {offlineCount > 0 && (
+          <div className="bg-alert-bg border border-warning/20 rounded-xl px-4 py-3 flex items-center justify-between mt-4">
+            <div className="flex items-center gap-2 text-sm text-warning font-medium">
+              <AlertTriangle size={16} />
+              <span>检测到 {offlineCount} 个离线客户端，请检查网络连接状态。</span>
+            </div>
+            <button className="text-sm text-primary font-semibold hover:underline">处理</button>
+          </div>
+        )}
+
         <section className="flex flex-wrap gap-3 pb-2">
-          <QuickAction icon={PlusCircle} label="New Client" onClick={() => onNavigate('add-client')} />
-          <QuickAction icon={Settings2} label="Manage Clients" onClick={() => onNavigate('clients')} />
-          <QuickAction icon={Globe} label="Domain Resolution" />
-          <QuickAction icon={History} label="Operation Logs" />
+          <QuickAction icon={PlusCircle} label="新增客户端" onClick={() => onNavigate('add-client')} />
+          <QuickAction icon={Settings2} label="客户端管理" onClick={() => onNavigate('clients')} />
+          <QuickAction icon={Globe} label="域名解析" onClick={() => onNavigate('domain')} />
+          <QuickAction icon={History} label="操作日志" />
         </section>
 
-        {/* KPIs */}
-        <section className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
-          <KpiCard 
-            title="Bridge Ports" 
-            value="8024" 
-            subtitle="Active bridge port" 
-            accent="border-l-primary"
-          />
-          <KpiCard 
-            title="Total Clients" 
-            value="156" 
-            subtitle={<><CheckCircle2 size={12} className="inline mr-1"/> All Registered</>}
-            bgIcon={<UsersIcon className="absolute -right-4 -bottom-4 w-24 h-24 text-surface-container-high opacity-50" />}
-          />
-          <KpiCard 
-            title="Online Clients" 
-            value="142" 
-            status="online"
-            subtitle="91.02% Online Rate" 
-          />
-          <KpiCard 
-            title="TCP Connections" 
-            value="3,892" 
-            subtitle={<span className="text-primary flex items-center gap-1"><TrendingUp size={12}/> 5.4%</span>}
-            pattern={true}
-          />
-          <Card className="flex flex-col justify-between">
-            <div>
-              <p className="text-xs font-medium text-on-surface-variant mb-1">Total Tunnels</p>
-              <h3 className="text-3xl font-bold tabular-nums text-on-surface leading-none">84</h3>
-            </div>
-            <div className="w-full h-1.5 bg-surface-container-high rounded-full overflow-hidden mt-4">
-              <div className="h-full bg-primary" style={{ width: '75%' }}></div>
-            </div>
-          </Card>
-          <KpiCard 
-            title="Offline / Alerts" 
-            value="14" 
-            valueColor="text-warning"
-            subtitle={<span className="text-warning flex items-center gap-1"><AlertTriangle size={12}/> Needs Attention</span>}
-            accent="border-l-warning"
-          />
-        </section>
+        {loading ? (
+          <DashboardSkeleton />
+        ) : (
+          <>
+            <section className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
+              <KpiCard
+                title="连接端口"
+                value={String(data?.p ?? '-')}
+                subtitle="桥接通信端口"
+                accent="border-l-primary"
+              />
+              <KpiCard
+                title="客户端总数"
+                value={String(clientCount)}
+                subtitle={
+                  <>
+                    <CheckCircle2 size={12} className="inline mr-1" />
+                    已注册
+                  </>
+                }
+                bgIcon={null}
+              />
+              <KpiCard
+                title="在线客户端"
+                value={String(clientOnline)}
+                status="online"
+                subtitle={`${onlineRate}% 在线率`}
+              />
+              <KpiCard
+                title="TCP 连接数"
+                value={tcpCount.toLocaleString()}
+                subtitle={
+                  <span className="text-primary flex items-center gap-1">
+                    <TrendingUp size={12} />
+                    连接中
+                  </span>
+                }
+                pattern={true}
+              />
+              <Card className="flex flex-col justify-between">
+                <div>
+                  <p className="text-xs font-medium text-on-surface-variant mb-1">隧道总数</p>
+                  <h3 className="text-3xl font-bold tabular-nums text-on-surface leading-none">{(data?.tcpC ?? 0) + (data?.udpCount ?? 0) + (data?.socks5Count ?? 0) + (data?.httpProxyCount ?? 0) + (data?.secretCount ?? 0) + (data?.p2pCount ?? 0)}</h3>
+                </div>
+                <div className="w-full h-1.5 bg-surface-container-high rounded-full overflow-hidden mt-4">
+                  <div className="h-full bg-primary" style={{ width: '75%' }}></div>
+                </div>
+              </Card>
+              <KpiCard
+                title="离线 / 告警"
+                value={String(offlineCount)}
+                valueColor="text-warning"
+                subtitle={
+                  <span className="text-warning flex items-center gap-1">
+                    <AlertTriangle size={12} />
+                    需关注
+                  </span>
+                }
+                accent="border-l-warning"
+              />
+            </section>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          {/* Configuration Summary */}
-          <Card className="lg:col-span-12" noPadding>
-            <div className="px-6 py-4 border-b border-outline-variant/15 flex items-center justify-between bg-surface-container-lowest">
-              <h2 className="text-base font-bold text-on-surface">Configuration Info</h2>
-              <button className="text-xs text-primary font-medium hover:underline">Edit Global Config</button>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-outline-variant/15 bg-surface-container-lowest">
-              <ConfigGroup items={[
-                { label: 'Bridge Mode', value: 'TCP / TLS Mixed' },
-                { label: 'HTTP Port', value: '80, 8080', tabular: true }
-              ]} />
-              <ConfigGroup items={[
-                { label: 'HTTPS Port', value: '443, 8443', tabular: true },
-                { label: 'Server IP', value: '192.168.1.104', tabular: true }
-              ]} />
-              <ConfigGroup items={[
-                { label: 'Version', value: 'v0.26.10', tabular: true },
-                { label: 'Uptime', value: '14d 08h 22m', tabular: true }
-              ]} />
-            </div>
-          </Card>
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+              <Card className="lg:col-span-12" noPadding>
+                <div className="px-6 py-4 border-b border-outline-variant/15 flex items-center justify-between bg-surface-container-lowest">
+                  <h2 className="text-base font-bold text-on-surface">配置信息</h2>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-outline-variant/15 bg-surface-container-lowest">
+                  <ConfigGroup
+                    items={[
+                      { label: '桥接模式', value: String(data?.bridgeType ?? '-'), tabular: true },
+                      { label: 'HTTP 端口', value: String(data?.httpProxyPort ?? '-'), tabular: true },
+                      { label: 'HTTPS 端口', value: String(data?.httpsProxyPort ?? '-'), tabular: true },
+                    ]}
+                  />
+                  <ConfigGroup
+                    items={[
+                      { label: 'IP 限制', value: String(data?.ipLimit ?? '-'), tabular: true },
+                      { label: '流量持久化', value: String(data?.flowStoreInterval ?? '-'), tabular: true },
+                      { label: '日志级别', value: String(data?.logLevel ?? '-'), tabular: true },
+                    ]}
+                  />
+                  <ConfigGroup
+                    items={[
+                      { label: 'P2P 端口', value: String(data?.p2pPort ?? '-'), tabular: true },
+                      { label: '服务端 IP', value: String(data?.serverIp ?? '-'), tabular: true },
+                      { label: '版本', value: String(data?.version ?? '-'), tabular: true },
+                    ]}
+                  />
+                </div>
+              </Card>
 
-          {/* Resource Monitoring */}
-          <Card className="lg:col-span-6">
-            <div className="flex items-center justify-between mb-8">
-              <h2 className="text-base font-bold text-on-surface flex items-center gap-2">
-                <Activity size={18} className="text-primary" />
-                Resource Monitoring
-              </h2>
-              <span className="text-xs text-on-surface-variant">Auto-refresh 5s</span>
-            </div>
-            <div className="space-y-8">
-              <ResourceBar label="CPU Usage" sub="8 Cores Platinum" value="24%" color="bg-primary" />
-              <ResourceBar label="Memory" sub="9.9 GB / 16.0 GB" value="62%" color="bg-primary" />
-              <ResourceBar label="Bandwidth" sub="↑ 4.2 MB/s ↓ 8.3 MB/s" value="12.5 MB/s" color="bg-secondary-container" valueColor="text-on-surface" />
-            </div>
-          </Card>
+              <Card className="lg:col-span-6">
+                <div className="flex items-center justify-between mb-8">
+                  <h2 className="text-base font-bold text-on-surface flex items-center gap-2">
+                    <Activity size={18} className="text-primary" />
+                    资源监控
+                  </h2>
+                  <span className="text-xs text-on-surface-variant">自动刷新 5s</span>
+                </div>
+                <div className="space-y-8">
+                  <ResourceBar
+                    label="CPU 使用率"
+                    sub=""
+                    value={`${data?.cpu ?? 0}%`}
+                    color="bg-primary"
+                  />
+                  <ResourceBar
+                    label="内存"
+                    sub={`虚拟内存 ${data?.virtual_mem ?? 0}%`}
+                    value={`${data?.virtual_mem ?? 0}%`}
+                    color="bg-primary"
+                  />
+                  <ResourceBar
+                    label="流量"
+                    sub={`入 ${data?.inletFlowCount ?? 0} / 出 ${data?.exportFlowCount ?? 0} 字节`}
+                    value={`${data?.io_send ?? 0} / ${data?.io_recv ?? 0}`}
+                    color="bg-secondary-container"
+                    valueColor="text-on-surface"
+                  />
+                </div>
+              </Card>
 
-          {/* Traffic Trend */}
-          <Card className="lg:col-span-6">
-            <div className="flex items-center justify-between mb-8">
-              <h2 className="text-base font-bold text-on-surface">Traffic Trend</h2>
-              <div className="bg-surface-container-low rounded-lg p-1 flex">
-                <button className="px-3 py-1 text-xs font-semibold bg-surface-container-lowest rounded shadow-sm text-on-surface">24h</button>
-                <button className="px-3 py-1 text-xs font-medium text-on-surface-variant hover:text-on-surface transition-colors">7d</button>
-                <button className="px-3 py-1 text-xs font-medium text-on-surface-variant hover:text-on-surface transition-colors">30d</button>
+              <Card className="lg:col-span-6">
+                <div className="flex items-center justify-between mb-8">
+                  <h2 className="text-base font-bold text-on-surface">流量统计</h2>
+                </div>
+                <div className="h-[200px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={[
+                          { name: '入站流量', value: data?.inletFlowCount ?? 0 },
+                          { name: '出站流量', value: data?.exportFlowCount ?? 0 },
+                        ]}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={50}
+                        outerRadius={80}
+                        paddingAngle={2}
+                        dataKey="value"
+                        label={({ name, value }) => `${name}: ${formatBytes(value)}`}
+                      >
+                        <Cell fill="var(--color-primary)" />
+                        <Cell fill="var(--color-secondary-container)" />
+                      </Pie>
+                      <Tooltip formatter={(v: number) => formatBytes(v)} />
+                      <Legend />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+              </Card>
+
+              <Card className="lg:col-span-6">
+                <div className="flex items-center justify-between mb-8">
+                  <h2 className="text-base font-bold text-on-surface">隧道类型分布</h2>
+                </div>
+                <div className="h-[200px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={[
+                          { name: '域名解析', value: hostCount },
+                          { name: 'TCP', value: data?.tcpC ?? 0 },
+                          { name: 'UDP', value: data?.udpCount ?? 0 },
+                          { name: 'HTTP 代理', value: data?.httpProxyCount ?? 0 },
+                          { name: 'SOCKS5', value: data?.socks5Count ?? 0 },
+                          { name: 'Secret', value: data?.secretCount ?? 0 },
+                          { name: 'P2P', value: data?.p2pCount ?? 0 },
+                        ].filter((d) => d.value > 0)}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={50}
+                        outerRadius={80}
+                        paddingAngle={2}
+                        dataKey="value"
+                      >
+                        {['#3370FF', '#4E83FD', '#85A9FF', '#BEDAFF', '#475c99', '#a5b9fd', '#8F959E'].map((c, i) => (
+                          <Cell key={i} fill={c} />
+                        ))}
+                      </Pie>
+                      <Tooltip />
+                      <Legend />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+              </Card>
+            </div>
+
+            {data?.system_info_display && (data?.sys1 || data?.sys2) && (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+                <Card>
+                  <h3 className="text-base font-bold text-on-surface mb-4">负载</h3>
+                  <div className="h-[200px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart data={[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((i) => {
+                        const s = data[`sys${i}`] as { time?: string; load1?: number } | undefined;
+                        return { time: s?.time ?? '', load1: s?.load1 ?? 0 };
+                      })}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="var(--color-outline-variant)" />
+                        <XAxis dataKey="time" tick={{ fontSize: 10 }} />
+                        <YAxis tick={{ fontSize: 10 }} />
+                        <Tooltip />
+                        <Line type="monotone" dataKey="load1" stroke="var(--color-primary)" strokeWidth={2} dot={false} />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
+                </Card>
+                <Card>
+                  <h3 className="text-base font-bold text-on-surface mb-4">CPU</h3>
+                  <div className="h-[200px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart data={[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((i) => {
+                        const s = data[`sys${i}`] as { time?: string; cpu?: number } | undefined;
+                        return { time: s?.time ?? '', cpu: s?.cpu ?? 0 };
+                      })}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="var(--color-outline-variant)" />
+                        <XAxis dataKey="time" tick={{ fontSize: 10 }} />
+                        <YAxis tick={{ fontSize: 10 }} />
+                        <Tooltip formatter={(v: number) => `${v}%`} />
+                        <Line type="monotone" dataKey="cpu" stroke="var(--color-primary)" strokeWidth={2} dot={false} />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
+                </Card>
+                <Card>
+                  <h3 className="text-base font-bold text-on-surface mb-4">内存</h3>
+                  <div className="h-[200px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart data={[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((i) => {
+                        const s = data[`sys${i}`] as { time?: string; virtual_mem?: number } | undefined;
+                        return { time: s?.time ?? '', mem: s?.virtual_mem ?? 0 };
+                      })}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="var(--color-outline-variant)" />
+                        <XAxis dataKey="time" tick={{ fontSize: 10 }} />
+                        <YAxis tick={{ fontSize: 10 }} />
+                        <Tooltip formatter={(v: number) => `${v}%`} />
+                        <Line type="monotone" dataKey="mem" stroke="var(--color-primary)" strokeWidth={2} dot={false} />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
+                </Card>
+                <Card>
+                  <h3 className="text-base font-bold text-on-surface mb-4">带宽</h3>
+                  <div className="h-[200px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart data={[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((i) => {
+                        const s = data[`sys${i}`] as { time?: string; io_send?: number; io_recv?: number } | undefined;
+                        return { time: s?.time ?? '', 入: s?.io_recv ?? 0, 出: s?.io_send ?? 0 };
+                      })}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="var(--color-outline-variant)" />
+                        <XAxis dataKey="time" tick={{ fontSize: 10 }} />
+                        <YAxis tick={{ fontSize: 10 }} tickFormatter={(v) => formatBytes(v)} />
+                        <Tooltip formatter={(v: number) => formatBytes(v)} />
+                        <Line type="monotone" dataKey="入" stroke="var(--color-primary)" strokeWidth={2} dot={false} />
+                        <Line type="monotone" dataKey="出" stroke="var(--color-secondary-container)" strokeWidth={2} dot={false} />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
+                </Card>
               </div>
-            </div>
-            <div className="relative h-[180px] w-full mt-4 flex items-end">
-              <svg className="w-full h-full" preserveAspectRatio="none" viewBox="0 0 100 100">
-                <defs>
-                  <linearGradient id="line-grad" x1="0%" y1="0%" x2="0%" y2="100%">
-                    <stop offset="0%" stopColor="var(--color-primary)" stopOpacity="0.15" />
-                    <stop offset="100%" stopColor="var(--color-primary)" stopOpacity="0" />
-                  </linearGradient>
-                </defs>
-                <path d="M0,80 C10,70 20,90 30,50 C40,10 50,40 60,30 C70,20 80,60 90,40 L100,50 L100,100 L0,100 Z" fill="url(#line-grad)" />
-                <path d="M0,80 C10,70 20,90 30,50 C40,10 50,40 60,30 C70,20 80,60 90,40 L100,50" fill="none" stroke="var(--color-primary)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-                <circle cx="30" cy="50" r="3.5" fill="var(--color-surface-container-lowest)" stroke="var(--color-primary)" strokeWidth="2.5" />
-              </svg>
-              <div className="absolute bottom-[-24px] w-full flex justify-between text-[10px] text-outline tabular-nums font-medium">
-                <span>00:00</span><span>06:00</span><span>12:00</span><span>18:00</span><span>23:59</span>
-              </div>
-            </div>
-          </Card>
-        </div>
+            )}
+          </>
+        )}
       </main>
     </div>
   );
 }
 
-// Subcomponents
-
-function QuickAction({ icon: Icon, label, onClick }: { icon: any, label: string, onClick?: () => void }) {
+function QuickAction({
+  icon: Icon,
+  label,
+  onClick,
+}: {
+  icon: React.ComponentType<{ size?: number }>;
+  label: string;
+  onClick?: () => void;
+}) {
   return (
-    <button 
+    <button
       onClick={onClick}
       className="flex items-center gap-2 px-4 py-2 bg-surface-container-lowest border border-outline-variant/20 rounded-full text-sm font-medium text-on-surface hover:bg-surface-container-low hover:border-outline-variant/40 transition-all shadow-sm"
     >
@@ -170,11 +375,35 @@ function QuickAction({ icon: Icon, label, onClick }: { icon: any, label: string,
   );
 }
 
-function KpiCard({ title, value, subtitle, accent, status, bgIcon, valueColor = 'text-on-surface', pattern }: any) {
+function KpiCard({
+  title,
+  value,
+  subtitle,
+  accent,
+  status,
+  bgIcon,
+  valueColor = 'text-on-surface',
+  pattern,
+}: {
+  title: string;
+  value: string;
+  subtitle: React.ReactNode;
+  accent?: string;
+  status?: string;
+  bgIcon?: React.ReactNode;
+  valueColor?: string;
+  pattern?: boolean;
+}) {
   return (
     <Card className={`relative overflow-hidden ${accent ? `border-l-4 ${accent}` : ''}`}>
       {pattern && (
-        <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle, var(--color-primary) 1.5px, transparent 1.5px)', backgroundSize: '12px 12px' }}></div>
+        <div
+          className="absolute inset-0 opacity-[0.03] pointer-events-none"
+          style={{
+            backgroundImage: 'radial-gradient(circle, var(--color-primary) 1.5px, transparent 1.5px)',
+            backgroundSize: '12px 12px',
+          }}
+        />
       )}
       {bgIcon}
       <div className="relative z-10">
@@ -189,40 +418,53 @@ function KpiCard({ title, value, subtitle, accent, status, bgIcon, valueColor = 
   );
 }
 
-function ConfigGroup({ items }: { items: {label: string, value: string, tabular?: boolean}[] }) {
+function ConfigGroup({
+  items,
+}: {
+  items: { label: string; value: string; tabular?: boolean }[];
+}) {
   return (
     <div className="p-6 space-y-5">
       {items.map((item, i) => (
         <div key={i} className="flex justify-between items-center">
           <span className="text-sm text-on-surface-variant">{item.label}</span>
-          <span className={`text-sm font-semibold text-on-surface ${item.tabular ? 'tabular-nums' : ''}`}>{item.value}</span>
+          <span className={`text-sm font-semibold text-on-surface ${item.tabular ? 'tabular-nums' : ''}`}>
+            {item.value}
+          </span>
         </div>
       ))}
     </div>
   );
 }
 
-function ResourceBar({ label, sub, value, color, valueColor = 'text-primary' }: any) {
+function ResourceBar({
+  label,
+  sub,
+  value,
+  color,
+  valueColor = 'text-primary',
+}: {
+  label: string;
+  sub: string;
+  value: string;
+  color: string;
+  valueColor?: string;
+}) {
+  const pct = value.includes('%') ? parseFloat(value) : 0;
   return (
     <div className="space-y-3">
       <div className="flex justify-between items-end">
         <div className="flex items-center gap-2">
           <span className="text-sm font-semibold text-on-surface">{label}</span>
-          <span className="text-[11px] text-outline font-medium">{sub}</span>
+          {sub && <span className="text-[11px] text-outline font-medium">{sub}</span>}
         </div>
         <span className={`text-sm font-bold tabular-nums ${valueColor}`}>{value}</span>
       </div>
-      <div className="h-2 w-full bg-surface-container-low rounded-full overflow-hidden">
-        <div className={`h-full ${color} rounded-full`} style={{ width: value }}></div>
-      </div>
+      {pct > 0 && pct <= 100 && (
+        <div className="h-2 w-full bg-surface-container-low rounded-full overflow-hidden">
+          <div className={`h-full ${color} rounded-full`} style={{ width: `${pct}%` }}></div>
+        </div>
+      )}
     </div>
-  );
-}
-
-function UsersIcon(props: any) {
-  return (
-    <svg viewBox="0 0 24 24" fill="currentColor" {...props}>
-      <path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z" />
-    </svg>
   );
 }

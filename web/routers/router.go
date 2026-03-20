@@ -11,6 +11,7 @@ func Init() {
 		ns := beego.NewNamespace(web_base_url,
 			beego.NSRouter("/", &controllers.IndexController{}, "*:Index"),
 			beego.NSRouter("/api/dashboard", &controllers.ApiController{}, "get:Dashboard"),
+			beego.NSRouter("/api/public-config", &controllers.ApiController{}, "get:PublicConfig"),
 			beego.NSAutoRouter(&controllers.IndexController{}),
 			beego.NSAutoRouter(&controllers.LoginController{}),
 			beego.NSAutoRouter(&controllers.ClientController{}),
@@ -20,6 +21,7 @@ func Init() {
 	} else {
 		beego.Router("/", &controllers.IndexController{}, "*:Index")
 		beego.Router("/api/dashboard", &controllers.ApiController{}, "get:Dashboard")
+		beego.Router("/api/public-config", &controllers.ApiController{}, "get:PublicConfig")
 		beego.AutoRouter(&controllers.IndexController{})
 		beego.AutoRouter(&controllers.LoginController{})
 		beego.AutoRouter(&controllers.ClientController{})

@@ -419,11 +419,28 @@ func GetDashboardData() map[string]interface{} {
 	}
 	loads, _ := load.Avg()
 	data["load"] = loads.String()
-	data["cpu"] = math.Round(cpuAll / float64(len(cpuPercet)))
+	if len(cpuPercet) > 0 {
+		cpuVal := cpuAll / float64(len(cpuPercet))
+		if !math.IsNaN(cpuVal) && !math.IsInf(cpuVal, 0) {
+			data["cpu"] = math.Round(cpuVal)
+		} else {
+			data["cpu"] = 0
+		}
+	} else {
+		data["cpu"] = 0
+	}
 	swap, _ := mem.SwapMemory()
-	data["swap_mem"] = math.Round(swap.UsedPercent)
+	if !math.IsNaN(swap.UsedPercent) && !math.IsInf(swap.UsedPercent, 0) {
+		data["swap_mem"] = math.Round(swap.UsedPercent)
+	} else {
+		data["swap_mem"] = 0
+	}
 	vir, _ := mem.VirtualMemory()
-	data["virtual_mem"] = math.Round(vir.UsedPercent)
+	if !math.IsNaN(vir.UsedPercent) && !math.IsInf(vir.UsedPercent, 0) {
+		data["virtual_mem"] = math.Round(vir.UsedPercent)
+	} else {
+		data["virtual_mem"] = 0
+	}
 	conn, _ := net.ProtoCounters(nil)
 	io1, _ := net.IOCounters(false)
 	time.Sleep(time.Millisecond * 500)

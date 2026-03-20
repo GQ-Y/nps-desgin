@@ -54,7 +54,34 @@ export async function login(username: string, password: string): Promise<LoginRe
 }
 
 export async function logout(): Promise<void> {
-  await fetch(apiUrl('/login/out'), { ...defaultOptions, method: 'GET' });
+  await fetch(apiUrl('/login/out'), { ...defaultOptions, method: 'GET', redirect: 'manual' });
+}
+
+export interface PublicConfig {
+  allow_user_register?: boolean;
+}
+
+export async function getPublicConfig(): Promise<PublicConfig> {
+  const res = await fetch(apiUrl('/api/public-config'), { ...defaultOptions, method: 'GET' });
+  return handleResponse<PublicConfig>(res);
+}
+
+export interface RegisterResult {
+  status: number;
+  msg: string;
+}
+
+export async function register(username: string, password: string): Promise<RegisterResult> {
+  const res = await fetch(apiUrl('/login/register'), {
+    ...defaultOptions,
+    method: 'POST',
+    headers: {
+      ...defaultOptions.headers,
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+    body: formBody({ username, password }),
+  });
+  return handleResponse<RegisterResult>(res);
 }
 
 // --- 仪表盘（需后端提供 /api/dashboard，见下方说明）---
@@ -238,7 +265,12 @@ export interface TunnelListResult {
     ServerIp?: string;
     LocalPath?: string;
     StripPre?: string;
-    Client?: { Id: number; VerifyKey?: string; IsConnect?: boolean };
+    Client?: {
+      Id: number;
+      VerifyKey?: string;
+      IsConnect?: boolean;
+      Cnf?: { U?: string; P?: string; Crypt?: boolean; Compress?: boolean };
+    };
     Target?: { TargetStr?: string; LocalProxy?: boolean };
     Flow?: { InletFlow?: number; ExportFlow?: number };
   }>;
@@ -382,6 +414,7 @@ export async function getHostList(params: HostListParams & { client_id?: number 
       offset: params.offset ?? 0,
       limit: params.limit ?? 10,
       search: params.search ?? '',
+      client_id: params.client_id ?? 0,
     }),
   });
   return handleResponse(res);
