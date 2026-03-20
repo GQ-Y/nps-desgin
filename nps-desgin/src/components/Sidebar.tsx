@@ -1,58 +1,72 @@
 import React from 'react';
+import { Terminal } from 'lucide-react';
+import { motion } from 'motion/react';
 import {
-  LayoutDashboard,
-  Users,
-  Globe,
-  Network,
-  Router,
-  Shield,
-  Lock,
-  TrainTrack,
-  Radio,
-  FolderOpen,
-  HelpCircle,
-  Terminal,
-} from 'lucide-react';
+  IconDashboard,
+  IconClients,
+  IconDomain,
+  IconTcp,
+  IconUdp,
+  IconHttp,
+  IconSocks5,
+  IconSecret,
+  IconP2p,
+  IconFile,
+  IconHelp,
+} from './SidebarIcons';
 
 interface SidebarProps {
   currentView: string;
   onNavigate: (view: string) => void;
 }
 
+type NavItem = { id: string; label: string; Icon: React.ComponentType<{ active?: boolean }> };
+
 export function Sidebar({ currentView, onNavigate }: SidebarProps) {
-  const navItems = [
-    { id: 'dashboard', label: '工作台', icon: LayoutDashboard },
-    { id: 'clients', label: '客户端', icon: Users },
-    { id: 'domain', label: '域名解析', icon: Globe },
+  const navItems: NavItem[] = [
+    { id: 'dashboard', label: '工作台', Icon: IconDashboard },
+    { id: 'clients', label: '客户端', Icon: IconClients },
+    { id: 'domain', label: '域名解析', Icon: IconDomain },
   ];
 
-  const protocolItems = [
-    { id: 'tcp', label: 'TCP', icon: Network },
-    { id: 'udp', label: 'UDP', icon: Router },
-    { id: 'http', label: 'HTTP 代理', icon: Shield },
-    { id: 'socks5', label: 'SOCKS5', icon: Lock },
+  const protocolItems: NavItem[] = [
+    { id: 'tcp', label: 'TCP', Icon: IconTcp },
+    { id: 'udp', label: 'UDP', Icon: IconUdp },
+    { id: 'http', label: 'HTTP 代理', Icon: IconHttp },
+    { id: 'socks5', label: 'SOCKS5', Icon: IconSocks5 },
   ];
 
-  const advancedItems = [
-    { id: 'tunnel', label: 'Secret 隧道', icon: TrainTrack },
-    { id: 'p2p', label: 'P2P', icon: Radio },
-    { id: 'file', label: '文件服务', icon: FolderOpen },
+  const advancedItems: NavItem[] = [
+    { id: 'tunnel', label: 'Secret 隧道', Icon: IconSecret },
+    { id: 'p2p', label: 'P2P', Icon: IconP2p },
+    { id: 'file', label: '文件服务', Icon: IconFile },
   ];
 
-  const NavButton = ({ item, isActive }: { item: (typeof navItems)[0]; isActive: boolean }) => {
-    const Icon = item.icon;
+  const NavButton = ({ item, isActive }: { item: NavItem; isActive: boolean }) => {
+    const { Icon } = item;
     return (
-      <button
+      <motion.button
         onClick={() => onNavigate(item.id)}
-        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 text-sm font-medium ${
+        className={`relative w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 text-sm font-medium ${
           isActive
-            ? 'bg-surface-container-lowest text-primary shadow-sm'
+            ? 'bg-primary/10 text-primary'
             : 'text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface'
         }`}
+        whileHover={{ x: 2 }}
+        whileTap={{ scale: 0.98 }}
       >
-        <Icon size={18} className={isActive ? 'text-primary' : 'text-outline'} />
-        {item.label}
-      </button>
+        {isActive && (
+          <motion.div
+            layoutId="sidebar-active"
+            className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 bg-primary rounded-r-full"
+            transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+          />
+        )}
+        <span className={`shrink-0 transition-colors duration-200 ${isActive ? 'text-primary' : 'text-outline'}`}>
+          <Icon active={isActive} />
+        </span>
+        <span className={isActive ? 'font-semibold' : ''}>{item.label}</span>
+      </motion.button>
     );
   };
 
@@ -97,17 +111,10 @@ export function Sidebar({ currentView, onNavigate }: SidebarProps) {
       </nav>
 
       <div className="mt-auto pt-4 border-t border-outline-variant/20">
-        <button
-          onClick={() => onNavigate('help')}
-          className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 text-sm font-medium ${
-            currentView === 'help'
-              ? 'bg-surface-container-lowest text-primary shadow-sm'
-              : 'text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface'
-          }`}
-        >
-          <HelpCircle size={18} className={currentView === 'help' ? 'text-primary' : 'text-outline'} />
-          帮助
-        </button>
+        <NavButton
+          item={{ id: 'help', label: '帮助', Icon: IconHelp }}
+          isActive={currentView === 'help'}
+        />
       </div>
     </aside>
   );

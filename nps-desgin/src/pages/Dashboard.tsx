@@ -75,7 +75,12 @@ export function Dashboard({ onNavigate, onLogout }: { onNavigate: (view: string)
               <AlertTriangle size={16} />
               <span>检测到 {offlineCount} 个离线客户端，请检查网络连接状态。</span>
             </div>
-            <button className="text-sm text-primary font-semibold hover:underline">处理</button>
+            <button
+              onClick={() => onNavigate('clients')}
+              className="text-sm text-primary font-semibold hover:underline transition-colors"
+            >
+              处理
+            </button>
           </div>
         )}
 

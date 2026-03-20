@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { User, Lock, Eye, ArrowRight } from 'lucide-react';
+import { User, Lock, ArrowRight } from 'lucide-react';
+import { Input, PasswordInput } from '../components/ui';
 import { motion } from 'motion/react';
 import { login, getPublicConfig } from '../api/client';
 
@@ -97,42 +98,21 @@ export function Login({ onLogin, onNavigateRegister }: LoginProps) {
                 {error}
               </div>
             )}
-            <div>
-              <label className="block text-sm font-semibold text-on-surface mb-2" htmlFor="username">用户名</label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                  <User className="text-outline w-5 h-5" />
-                </div>
-                <input
-                  type="text"
-                  id="username"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  className="block w-full pl-11 pr-4 py-3 bg-surface-container-low border-none rounded-xl text-on-surface placeholder-outline focus:ring-2 focus:ring-primary/30 focus:bg-surface-container-lowest transition-all"
-                  placeholder="请输入用户名"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold text-on-surface mb-2" htmlFor="password">密码</label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                  <Lock className="text-outline w-5 h-5" />
-                </div>
-                <input
-                  type="password"
-                  id="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="block w-full pl-11 pr-12 py-3 bg-surface-container-low border-none rounded-xl text-on-surface placeholder-outline focus:ring-2 focus:ring-primary/30 focus:bg-surface-container-lowest transition-all"
-                  placeholder="请输入密码"
-                />
-                <button type="button" className="absolute inset-y-0 right-0 pr-4 flex items-center text-outline hover:text-on-surface-variant">
-                  <Eye className="w-5 h-5" />
-                </button>
-              </div>
-            </div>
+            <Input
+              label="用户名"
+              type="text"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              leftIcon={<User size={20} />}
+              placeholder="请输入用户名"
+            />
+            <PasswordInput
+              label="密码"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              leftIcon={<Lock size={20} />}
+              placeholder="请输入密码"
+            />
 
             <button
               type="submit"

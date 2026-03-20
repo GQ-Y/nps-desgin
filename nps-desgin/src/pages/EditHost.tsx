@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Sidebar } from '../components/Sidebar';
 import { Header } from '../components/Header';
 import { Card, PageTransition } from '../components/Shared';
+import { Input, Select, Textarea } from '../components/ui';
 import { getHost, editHost, getDashboard } from '../api/client';
 
 type HostData = {
@@ -155,125 +156,78 @@ export function EditHost({
 
             <Card>
               <div className="space-y-4">
-                <div>
-                  <label className="text-sm font-semibold mb-1.5 block text-on-surface">客户端 ID</label>
-                  <input
-                    type="number"
-                    value={clientId}
-                    readOnly
-                    className="w-full bg-surface-container-low border-none rounded-xl text-sm py-3 px-4 opacity-80"
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-semibold mb-1.5 block text-on-surface">备注</label>
-                  <input
-                    type="text"
-                    value={remark}
-                    onChange={(e) => setRemark(e.target.value)}
-                    className="w-full bg-surface-container-low border-none rounded-xl focus:ring-2 focus:ring-primary/30 text-sm py-3 px-4"
-                    placeholder="可选"
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-semibold mb-1.5 block text-on-surface">域名</label>
-                  <input
-                    type="text"
-                    value={host}
-                    onChange={(e) => setHost(e.target.value)}
-                    className="w-full bg-surface-container-low border-none rounded-xl focus:ring-2 focus:ring-primary/30 text-sm py-3 px-4"
-                    placeholder="例如 a.proxy.com"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-semibold mb-1.5 block text-on-surface">协议</label>
-                  <select
-                    value={scheme}
-                    onChange={(e) => setScheme(e.target.value as 'all' | 'http' | 'https')}
-                    className="w-full bg-surface-container-low border-none rounded-xl focus:ring-2 focus:ring-primary/30 text-sm py-3 px-4"
-                  >
-                    <option value="all">全部</option>
-                    <option value="http">HTTP</option>
-                    <option value="https">HTTPS</option>
-                  </select>
-                </div>
+                <Input label="客户端 ID" type="text" value={String(clientId)} readOnly inputClassName="opacity-80" />
+                <Input label="备注" value={remark} onChange={(e) => setRemark(e.target.value)} placeholder="可选" />
+                <Input
+                  label="域名"
+                  value={host}
+                  onChange={(e) => setHost(e.target.value)}
+                  placeholder="例如 a.proxy.com"
+                  required
+                />
+                <Select
+                  label="协议"
+                  value={scheme}
+                  onChange={(v) => setScheme(v)}
+                  options={[
+                    { value: 'all', label: '全部' },
+                    { value: 'http', label: 'HTTP' },
+                    { value: 'https', label: 'HTTPS' },
+                  ]}
+                />
                 {showCertFields && (
                   <>
-                    <div>
-                      <label className="text-sm font-semibold mb-1.5 block text-on-surface">HTTPS 证书路径</label>
-                      <input
-                        type="text"
-                        value={certFilePath}
-                        onChange={(e) => setCertFilePath(e.target.value)}
-                        className="w-full bg-surface-container-low border-none rounded-xl focus:ring-2 focus:ring-primary/30 text-sm py-3 px-4"
-                        placeholder="可选"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-sm font-semibold mb-1.5 block text-on-surface">HTTPS 密钥路径</label>
-                      <input
-                        type="text"
-                        value={keyFilePath}
-                        onChange={(e) => setKeyFilePath(e.target.value)}
-                        className="w-full bg-surface-container-low border-none rounded-xl focus:ring-2 focus:ring-primary/30 text-sm py-3 px-4"
-                        placeholder="可选"
-                      />
-                    </div>
+                    <Input
+                      label="HTTPS 证书路径"
+                      value={certFilePath}
+                      onChange={(e) => setCertFilePath(e.target.value)}
+                      placeholder="可选"
+                    />
+                    <Input
+                      label="HTTPS 密钥路径"
+                      value={keyFilePath}
+                      onChange={(e) => setKeyFilePath(e.target.value)}
+                      placeholder="可选"
+                    />
                   </>
                 )}
-                <div>
-                  <label className="text-sm font-semibold mb-1.5 block text-on-surface">URL 路由</label>
-                  <input
-                    type="text"
-                    value={location}
-                    onChange={(e) => setLocation(e.target.value)}
-                    className="w-full bg-surface-container-low border-none rounded-xl focus:ring-2 focus:ring-primary/30 text-sm py-3 px-4"
-                    placeholder="可选"
-                  />
-                </div>
+                <Input
+                  label="URL 路由"
+                  value={location}
+                  onChange={(e) => setLocation(e.target.value)}
+                  placeholder="可选"
+                />
                 {config.allow_local_proxy && (
-                  <div>
-                    <label className="text-sm font-semibold mb-1.5 block text-on-surface">代理到本地</label>
-                    <select
-                      value={localProxy ? '1' : '0'}
-                      onChange={(e) => setLocalProxy(e.target.value === '1')}
-                      className="w-full bg-surface-container-low border-none rounded-xl focus:ring-2 focus:ring-primary/30 text-sm py-3 px-4"
-                    >
-                      <option value="0">否</option>
-                      <option value="1">是</option>
-                    </select>
-                  </div>
+                  <Select
+                    label="代理到本地"
+                    value={localProxy ? '1' : '0'}
+                    onChange={(v) => setLocalProxy(v === '1')}
+                    options={[
+                      { value: '0', label: '否' },
+                      { value: '1', label: '是' },
+                    ]}
+                  />
                 )}
-                <div>
-                  <label className="text-sm font-semibold mb-1.5 block text-on-surface">内网目标</label>
-                  <textarea
-                    value={target}
-                    onChange={(e) => setTarget(e.target.value)}
-                    rows={4}
-                    className="w-full bg-surface-container-low border-none rounded-xl focus:ring-2 focus:ring-primary/30 text-sm py-3 px-4"
-                    placeholder="例如 127.0.0.1:81"
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-semibold mb-1.5 block text-on-surface">请求头</label>
-                  <textarea
-                    value={header}
-                    onChange={(e) => setHeader(e.target.value)}
-                    rows={3}
-                    className="w-full bg-surface-container-low border-none rounded-xl focus:ring-2 focus:ring-primary/30 text-sm py-3 px-4"
-                    placeholder="例如 Cache-Control: no-cache"
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-semibold mb-1.5 block text-on-surface">请求 Host</label>
-                  <input
-                    type="text"
-                    value={hostchange}
-                    onChange={(e) => setHostchange(e.target.value)}
-                    className="w-full bg-surface-container-low border-none rounded-xl focus:ring-2 focus:ring-primary/30 text-sm py-3 px-4"
-                    placeholder="可选"
-                  />
-                </div>
+                <Textarea
+                  label="内网目标"
+                  value={target}
+                  onChange={(e) => setTarget(e.target.value)}
+                  rows={4}
+                  placeholder="例如 127.0.0.1:81"
+                />
+                <Textarea
+                  label="请求头"
+                  value={header}
+                  onChange={(e) => setHeader(e.target.value)}
+                  rows={3}
+                  placeholder="例如 Cache-Control: no-cache"
+                />
+                <Input
+                  label="请求 Host"
+                  value={hostchange}
+                  onChange={(e) => setHostchange(e.target.value)}
+                  placeholder="可选"
+                />
               </div>
             </Card>
           </form>

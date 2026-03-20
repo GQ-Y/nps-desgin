@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Sidebar } from '../components/Sidebar';
 import { Header } from '../components/Header';
 import { Card, PageTransition } from '../components/Shared';
-import { RefreshCw, ChevronDown } from 'lucide-react';
+import { Input, Select, PasswordInput } from '../components/ui';
+import { RefreshCw } from 'lucide-react';
 import { getDashboard } from '../api/client';
 
 type Config = {
@@ -110,117 +111,89 @@ export function AddClient({ onNavigate, onLogout }: { onNavigate: (view: string)
             <Card>
               <SectionHeader title="基本配置" />
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="col-span-2">
-                  <label className="text-sm font-semibold mb-1.5 block text-on-surface">备注</label>
-                  <input
-                    type="text"
-                    value={remark}
-                    onChange={(e) => setRemark(e.target.value)}
-                    className="w-full bg-surface-container-low border-none rounded-xl focus:ring-2 focus:ring-primary/30 text-sm py-3 px-4 placeholder-outline"
-                    placeholder="例如：生产环境-API 服务器"
-                  />
-                </div>
-
-                <div>
-                  <label className="text-sm font-semibold mb-1.5 block text-on-surface">Basic 认证用户名</label>
-                  <input
-                    type="text"
-                    value={u}
-                    onChange={(e) => setU(e.target.value)}
-                    className="w-full bg-surface-container-low border-none rounded-xl focus:ring-2 focus:ring-primary/30 text-sm py-3 px-4"
-                    placeholder="仅代理时使用"
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-semibold mb-1.5 block text-on-surface">Basic 认证密码</label>
-                  <input
-                    type="password"
-                    value={p}
-                    onChange={(e) => setP(e.target.value)}
-                    className="w-full bg-surface-container-low border-none rounded-xl focus:ring-2 focus:ring-primary/30 text-sm py-3 px-4"
-                    placeholder="仅代理时使用"
-                  />
-                </div>
-
+                <Input
+                  label="备注"
+                  value={remark}
+                  onChange={(e) => setRemark(e.target.value)}
+                  placeholder="例如：生产环境-API 服务器"
+                  containerClassName="col-span-2"
+                />
+                <Input
+                  label="Basic 认证用户名"
+                  value={u}
+                  onChange={(e) => setU(e.target.value)}
+                  placeholder="仅代理时使用"
+                />
+                <PasswordInput
+                  label="Basic 认证密码"
+                  value={p}
+                  onChange={(e) => setP(e.target.value)}
+                  placeholder="仅代理时使用"
+                />
                 {config.allow_user_login && (
                   <>
-                    <div>
-                      <label className="text-sm font-semibold mb-1.5 block text-on-surface">Web 登录用户名</label>
-                      <input
-                        type="text"
-                        value={webUsername}
-                        onChange={(e) => setWebUsername(e.target.value)}
-                        className="w-full bg-surface-container-low border-none rounded-xl focus:ring-2 focus:ring-primary/30 text-sm py-3 px-4"
-                        placeholder="可选"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-sm font-semibold mb-1.5 block text-on-surface">Web 登录密码</label>
-                      <input
-                        type="password"
-                        value={webPassword}
-                        onChange={(e) => setWebPassword(e.target.value)}
-                        className="w-full bg-surface-container-low border-none rounded-xl focus:ring-2 focus:ring-primary/30 text-sm py-3 px-4"
-                        placeholder="可选"
-                      />
-                    </div>
+                    <Input
+                      label="Web 登录用户名"
+                      value={webUsername}
+                      onChange={(e) => setWebUsername(e.target.value)}
+                      placeholder="可选"
+                    />
+                    <PasswordInput
+                      label="Web 登录密码"
+                      value={webPassword}
+                      onChange={(e) => setWebPassword(e.target.value)}
+                      placeholder="可选"
+                    />
                   </>
                 )}
-
                 <div className="col-span-2">
                   <label className="text-sm font-semibold mb-1.5 block text-on-surface">验证密钥</label>
                   <div className="flex gap-3">
-                    <input
-                      type="text"
+                    <Input
                       value={vkey}
                       onChange={(e) => setVkey(e.target.value)}
-                      className="flex-1 tabular-nums font-mono bg-surface-container-low border-none rounded-xl focus:ring-2 focus:ring-primary/30 text-sm py-3 px-4"
                       placeholder="留空则自动生成"
+                      containerClassName="flex-1 min-w-0"
+                      inputClassName="tabular-nums font-mono"
                     />
                     <button
                       type="button"
                       onClick={generateVkey}
-                      className="bg-primary-fixed text-on-primary-fixed px-5 rounded-xl text-sm font-bold hover:bg-primary-fixed-dim transition-colors flex items-center gap-2"
+                      className="bg-primary-fixed text-on-primary-fixed px-5 rounded-xl text-sm font-bold hover:bg-primary-fixed-dim transition-colors flex items-center gap-2 shrink-0"
                     >
                       <RefreshCw size={16} />
                       生成
                     </button>
                   </div>
                 </div>
-
-                <div className="col-span-2">
-                  <label className="text-sm font-semibold mb-1.5 block text-on-surface">仅允许配置连接</label>
-                  <select
-                    value={configConnAllow ? '1' : '0'}
-                    onChange={(e) => setConfigConnAllow(e.target.value === '1')}
-                    className="w-full bg-surface-container-low border-none rounded-xl focus:ring-2 focus:ring-primary/30 text-sm py-3 px-4 appearance-none font-medium"
-                  >
-                    <option value="0">否（动态模式）</option>
-                    <option value="1">是（高安全）</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="text-sm font-semibold mb-1.5 block text-on-surface">压缩</label>
-                  <select
-                    value={compress ? '1' : '0'}
-                    onChange={(e) => setCompress(e.target.value === '1')}
-                    className="w-full bg-surface-container-low border-none rounded-xl focus:ring-2 focus:ring-primary/30 text-sm py-3 px-4 appearance-none font-medium"
-                  >
-                    <option value="0">否</option>
-                    <option value="1">是</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="text-sm font-semibold mb-1.5 block text-on-surface">加密</label>
-                  <select
-                    value={crypt ? '1' : '0'}
-                    onChange={(e) => setCrypt(e.target.value === '1')}
-                    className="w-full bg-surface-container-low border-none rounded-xl focus:ring-2 focus:ring-primary/30 text-sm py-3 px-4 appearance-none font-medium"
-                  >
-                    <option value="0">否</option>
-                    <option value="1">是</option>
-                  </select>
-                </div>
+                <Select
+                  label="仅允许配置连接"
+                  value={configConnAllow ? '1' : '0'}
+                  onChange={(v) => setConfigConnAllow(v === '1')}
+                  options={[
+                    { value: '0', label: '否（动态模式）' },
+                    { value: '1', label: '是（高安全）' },
+                  ]}
+                  className="col-span-2"
+                />
+                <Select
+                  label="压缩"
+                  value={compress ? '1' : '0'}
+                  onChange={(v) => setCompress(v === '1')}
+                  options={[
+                    { value: '0', label: '否' },
+                    { value: '1', label: '是' },
+                  ]}
+                />
+                <Select
+                  label="加密"
+                  value={crypt ? '1' : '0'}
+                  onChange={(v) => setCrypt(v === '1')}
+                  options={[
+                    { value: '0', label: '否' },
+                    { value: '1', label: '是' },
+                  ]}
+                />
               </div>
             </Card>
 
@@ -229,16 +202,40 @@ export function AddClient({ onNavigate, onLogout }: { onNavigate: (view: string)
                 <h3 className="text-lg font-bold text-secondary mb-4">高级限制（可选）</h3>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   {config.allow_flow_limit && (
-                    <AdvancedInput label="流量限制 (MB)" placeholder="0 = 不限" value={flowLimit} onChange={setFlowLimit} />
+                    <Input
+                      type="number"
+                      label="流量限制 (MB)"
+                      placeholder="0 = 不限"
+                      value={flowLimit || ''}
+                      onChange={(e) => setFlowLimit(parseInt(e.target.value, 10) || 0)}
+                    />
                   )}
                   {config.allow_rate_limit && (
-                    <AdvancedInput label="速度限制 (KB/s)" placeholder="0 = 不限" value={rateLimit} onChange={setRateLimit} />
+                    <Input
+                      type="number"
+                      label="速度限制 (KB/s)"
+                      placeholder="0 = 不限"
+                      value={rateLimit || ''}
+                      onChange={(e) => setRateLimit(parseInt(e.target.value, 10) || 0)}
+                    />
                   )}
                   {config.allow_connection_num_limit && (
-                    <AdvancedInput label="最大连接数" placeholder="1000" value={maxConn} onChange={setMaxConn} />
+                    <Input
+                      type="number"
+                      label="最大连接数"
+                      placeholder="1000"
+                      value={maxConn || ''}
+                      onChange={(e) => setMaxConn(parseInt(e.target.value, 10) || 0)}
+                    />
                   )}
                   {config.allow_tunnel_num_limit && (
-                    <AdvancedInput label="最大隧道数" placeholder="0 = 不限" value={maxTunnel} onChange={setMaxTunnel} />
+                    <Input
+                      type="number"
+                      label="最大隧道数"
+                      placeholder="0 = 不限"
+                      value={maxTunnel || ''}
+                      onChange={(e) => setMaxTunnel(parseInt(e.target.value, 10) || 0)}
+                    />
                   )}
                 </div>
               </div>
@@ -279,38 +276,3 @@ function SectionHeader({ title }: { title: string }) {
   );
 }
 
-function ProtocolCheckbox({ icon: Icon, title, desc, defaultChecked = false }: any) {
-  return (
-    <label className="relative flex flex-col p-4 bg-surface-container-low rounded-xl border-2 border-transparent has-[:checked]:border-primary has-[:checked]:bg-primary-fixed/30 cursor-pointer transition-all hover:bg-surface-container-high group">
-      <input type="checkbox" defaultChecked={defaultChecked} className="absolute top-4 right-4 rounded border-outline-variant text-primary focus:ring-primary w-4 h-4 bg-surface-container-lowest" />
-      <Icon className="text-primary mb-3 w-6 h-6" />
-      <span className="text-sm font-bold text-on-surface block">{title}</span>
-      <span className="text-[10px] text-on-surface-variant leading-tight mt-1 font-medium opacity-80 group-hover:opacity-100 transition-opacity">{desc}</span>
-    </label>
-  );
-}
-
-function AdvancedInput({
-  label,
-  placeholder,
-  value,
-  onChange,
-}: {
-  label: string;
-  placeholder: string;
-  value: number;
-  onChange: (v: number) => void;
-}) {
-  return (
-    <div>
-      <label className="text-xs font-bold text-on-surface-variant mb-2 block uppercase tracking-wider">{label}</label>
-      <input
-        type="number"
-        placeholder={placeholder}
-        value={value || ''}
-        onChange={(e) => onChange(parseInt(e.target.value, 10) || 0)}
-        className="w-full tabular-nums bg-surface-container-lowest border-none rounded-xl focus:ring-2 focus:ring-secondary/30 text-sm py-3 px-4 shadow-sm"
-      />
-    </div>
-  );
-}

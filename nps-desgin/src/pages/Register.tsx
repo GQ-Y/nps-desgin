@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { User, Lock, ArrowRight } from 'lucide-react';
+import { Input, PasswordInput } from '../components/ui';
 import { motion } from 'motion/react';
 import { register } from '../api/client';
 
@@ -69,39 +70,22 @@ export function Register({ onSuccess, onBack }: RegisterProps) {
                 {error}
               </div>
             )}
-            <div>
-              <label className="block text-sm font-semibold text-on-surface mb-2" htmlFor="reg-username">用户名</label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                  <User className="text-outline w-5 h-5" />
-                </div>
-                <input
-                  type="text"
-                  id="reg-username"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  className="block w-full pl-11 pr-4 py-3 bg-surface-container-low border-none rounded-xl text-on-surface placeholder-outline focus:ring-2 focus:ring-primary/30"
-                  placeholder="请输入用户名"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold text-on-surface mb-2" htmlFor="reg-password">密码</label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                  <Lock className="text-outline w-5 h-5" />
-                </div>
-                <input
-                  type="password"
-                  id="reg-password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="block w-full pl-11 pr-4 py-3 bg-surface-container-low border-none rounded-xl text-on-surface placeholder-outline focus:ring-2 focus:ring-primary/30"
-                  placeholder="请输入密码"
-                />
-              </div>
-            </div>
+            <Input
+              label="用户名"
+              id="reg-username"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              leftIcon={<User size={20} />}
+              placeholder="请输入用户名"
+            />
+            <PasswordInput
+              label="密码"
+              id="reg-password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              leftIcon={<Lock size={20} />}
+              placeholder="请输入密码"
+            />
 
             <button
               type="submit"
