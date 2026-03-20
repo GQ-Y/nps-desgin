@@ -1,90 +1,46 @@
+# NPS 管理端 · 内网穿透
 
-# nps
-![](https://img.shields.io/github/stars/ehang-io/nps.svg)   ![](https://img.shields.io/github/forks/ehang-io/nps.svg)
-[![Gitter](https://badges.gitter.im/cnlh-nps/community.svg)](https://gitter.im/cnlh-nps/community?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
-![Release](https://github.com/ehang-io/nps/workflows/Release/badge.svg)
-![GitHub All Releases](https://img.shields.io/github/downloads/ehang-io/nps/total)
+[English](README.md) | [中文](README_zh.md)
 
-[README](https://github.com/ehang-io/nps/blob/master/README.md)|[中文文档](https://github.com/ehang-io/nps/blob/master/README_zh.md)
+本仓库在 [NPS](https://github.com/ehang-io/nps) 服务端能力之上，提供**新一代 Web 管理界面**（React + TypeScript + Vite）：工作台仪表盘、客户端与隧道管理、分组、通知与用户中心等，默认支持中英文切换。
 
-nps是一款轻量级、高性能、功能强大的**内网穿透**代理服务器。目前支持**tcp、udp流量转发**，可支持任何**tcp、udp**上层协议（访问内网网站、本地支付接口调试、ssh访问、远程桌面，内网dns解析等等……），此外还**支持内网http代理、内网socks5代理**、**p2p等**，并带有功能强大的web管理端。
+![NPS 管理端 — 系统仪表盘](docs/screenshots/dashboard.png)
 
+## 管理端能力概览
 
-## 背景
-![image](https://github.com/ehang-io/nps/blob/master/image/web.png?raw=true)
+- **工作台**：连接端口、客户端与隧道统计、配置摘要、资源与流量视图  
+- **导航**：客户端、域名解析、按协议查看隧道（TCP/UDP/HTTP/SOCKS5 等）、高级能力入口、帮助与用户中心  
+- **账户**：用户中心支持修改登录密码（管理员写入 `conf/nps.conf` 的 `web_password`；多用户模式写入客户端数据）  
+- **接口**：与现有 nps HTTP API / 会话鉴权兼容，前端工程目录为 `nps-desgin/`
 
-1. 做微信公众号开发、小程序开发等----> 域名代理模式
+## 运行与开发
 
-2. 想在外网通过ssh连接内网的机器，做云服务器到内网服务器端口的映射，----> tcp代理模式
+### 服务端（Go）
 
-3. 在非内网环境下使用内网dns，或者需要通过udp访问内网机器等----> udp代理模式
+在项目根目录构建并启动（可执行文件需与 `conf/` 同级，以便加载 `conf/nps.conf`）：
 
-4. 在外网使用HTTP代理访问内网站点----> http代理模式
+```bash
+CGO_ENABLED=0 go build -o nps ./cmd/nps
+./nps
+```
 
-5. 搭建一个内网穿透ss，在外网如同使用内网vpn一样访问内网资源或者设备----> socks5代理模式
-## 特点
-- 协议支持全面，兼容几乎所有常用协议，例如tcp、udp、http(s)、socks5、p2p、http代理...
-- 全平台兼容(linux、windows、macos、群辉等)，支持一键安装为系统服务
-- 控制全面，同时支持服务端和客户端控制
-- https集成，支持将后端代理和web服务转成https，同时支持多证书
-- 操作简单，只需简单的配置即可在web ui上完成其余操作
-- 展示信息全面，流量、系统信息、即时带宽、客户端版本等
-- 扩展功能强大，该有的都有了（缓存、压缩、加密、流量限制、带宽限制、端口复用等等）
-- 域名解析具备自定义header、404页面配置、host修改、站点保护、URL路由、泛解析等功能
-- 服务端支持多用户和用户注册功能
+默认 Web 端口见配置文件中的 `web_port`（常见为 `8080`）。正式环境请务必修改默认账号密码。
 
-**没找到你想要的功能？不要紧，点击[进入文档](https://ehang-io.github.io/nps)查找吧**
-## 快速开始
+### 管理端前端（本地开发）
 
-### 安装
-> [releases](https://github.com/ehang-io/nps/releases)
+```bash
+cd nps-desgin
+pnpm install
+pnpm dev -- --host 0.0.0.0 --port 3000
+```
 
-下载对应的系统版本即可，服务端和客户端是单独的
+开发时可将前端请求代理到本机 nps HTTP 服务（详见 `nps-desgin` 内 `vite` / `api` 配置）。
 
-### 服务端启动
-下载完服务器压缩包后，解压，然后进入解压后的文件夹
+## 文档与配置
 
-- 执行安装命令
+- 服务端配置：`conf/nps.conf`  
+- 界面与交互需求见仓库内 `docs/` 下文档（如有）
 
-对于linux|darwin ```sudo ./nps install```
+## 许可与致谢
 
-对于windows，管理员身份运行cmd，进入安装目录 ```nps.exe install```
-
-- 默认端口
-
-nps默认配置文件使用了80，443，8080，8024端口
-
-80与443端口为域名解析模式默认端口
-
-8080为web管理访问端口
-
-8024为网桥端口，用于客户端与服务器通信
-
-- 启动
-
-对于linux|darwin ```sudo nps start```
-
-对于windows，管理员身份运行cmd，进入程序目录 ```nps.exe start```
-
-```安装后windows配置文件位于 C:\Program Files\nps，linux和darwin位于/etc/nps```
-
-**如果发现没有启动成功，可以查看日志(Windows日志文件位于当前运行目录下，linux和darwin位于/var/log/nps.log)**
-- 访问服务端ip:web服务端口（默认为8080）
-- 使用用户名和密码登陆（默认admin/123，正式使用一定要更改）
-- 创建客户端
-
-### 客户端连接
-- 点击web管理中客户端前的+号，复制启动命令
-- 执行启动命令，linux直接执行即可，windows将./npc换成npc.exe用cmd执行
-
-如果需要注册到系统服务可查看[注册到系统服务](https://ehang-io.github.io/nps/#/use?id=注册到系统服务)
-
-### 配置
-- 客户端连接后，在web中配置对应穿透服务即可
-- 更多高级用法见[完整文档](https://ehang-io.github.io/nps/)
-
-## 贡献
-- 如果遇到bug可以直接提交至dev分支
-- 使用遇到问题可以通过issues反馈
-- 项目处于开发阶段，还有很多待完善的地方，如果可以贡献代码，请提交 PR 至 dev 分支
-- 如果有新的功能特性反馈，可以通过issues或者qq群反馈
+服务端核心继承 NPS 开源生态；管理端 UI 由本仓库维护。使用与分发请遵守项目所采用的开源许可证。
