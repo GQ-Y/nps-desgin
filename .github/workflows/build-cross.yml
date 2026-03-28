@@ -1,0 +1,117 @@
+# 交叉编译 nps（含新管理端静态资源）与 npc，上传 Artifact。
+# 默认 Web 端口见 conf/nps.conf 中 web_port（当前为 8080）。
+name: Build cross-platform
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+  workflow_dispatch:
+
+concurrency:
+  group: build-cross-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  admin-ui:
+    name: Build nps-desgin → web/static/spa
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: pnpm
+          cache-dependency-path: nps-desgin/pnpm-lock.yaml
+
+      - name: Build admin UI
+        run: chmod +x scripts/build-admin-ui.sh && ./scripts/build-admin-ui.sh
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: web-spa
+          path: web/static/spa
+          retention-days: 7
+
+  compile:
+    name: ${{ matrix.name }}
+    needs: admin-ui
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: linux-amd64
+            goos: linux
+            goarch: amd64
+            goarm: ""
+          - name: linux-arm64
+            goos: linux
+            goarch: arm64
+            goarm: ""
+          - name: linux-armv7
+            goos: linux
+            goarch: arm
+            goarm: "7"
+          - name: darwin-amd64
+            goos: darwin
+            goarch: amd64
+            goarm: ""
+          - name: darwin-arm64
+            goos: darwin
+            goarch: arm64
+            goarm: ""
+          - name: windows-amd64
+            goos: windows
+            goarch: amd64
+            goarm: ""
+          - name: windows-386
+            goos: windows
+            goarch: "386"
+            goarm: ""
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: web-spa
+          path: web/static/spa
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Build nps & npc
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          CGO_ENABLED: "0"
+        run: |
+          set -euo pipefail
+          mkdir -p dist bundle
+          EXT=""
+          if [ "$GOOS" = "windows" ]; then EXT=".exe"; fi
+          unset GOARM || true
+          if [ -n "${{ matrix.goarm }}" ]; then export GOARM="${{ matrix.goarm }}"; fi
+          go build -trimpath -ldflags "-s -w" -o "dist/nps${EXT}" ./cmd/nps
+          go build -trimpath -ldflags "-s -w" -o "dist/npc${EXT}" ./cmd/npc
+          NAME="nps-${{ matrix.name }}"
+          mkdir -p "bundle/$NAME"
+          cp "dist/nps${EXT}" "bundle/$NAME/"
+          cp "dist/npc${EXT}" "bundle/$NAME/"
+          cp -r conf web "bundle/$NAME/"
+          tar -C bundle -czvf "${NAME}.tar.gz" "$NAME"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bundle-${{ matrix.name }}
+          path: "*.tar.gz"
+          retention-days: 14
