@@ -4,6 +4,7 @@ import { User, Lock, ArrowRight } from 'lucide-react';
 import { Input, PasswordInput } from '../components/ui';
 import { motion } from 'motion/react';
 import { login, getPublicConfig } from '../api/client';
+import { translateLoginApiMessage } from '../i18n/apiMessageMap';
 
 interface LoginProps {
   onLogin: () => void;
@@ -31,10 +32,11 @@ export function Login({ onLogin, onNavigateRegister }: LoginProps) {
       if (res.status === 1) {
         onLogin();
       } else {
-        setError(res.msg || t('login.wrongCredential'));
+        setError(translateLoginApiMessage(res.msg, t));
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : t('login.loginFailed'));
+      const raw = err instanceof Error ? err.message : '';
+      setError(raw ? translateLoginApiMessage(raw, t) : t('login.loginFailed'));
     } finally {
       setLoading(false);
     }

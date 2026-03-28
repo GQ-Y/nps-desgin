@@ -1,9 +1,120 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import {
+  Globe,
+  Cable,
+  Radio,
+  Shield,
+  Network,
+  Github,
+  ExternalLink,
+  Sparkles,
+  Info,
+  Star,
+  GitFork,
+  Activity,
+} from 'lucide-react';
 import { Sidebar } from '../components/Sidebar';
 import { Header } from '../components/Header';
-import { Card } from '../components/Shared';
 import { getDashboard } from '../api/client';
+import {
+  GITHUB_REPO_URL,
+  GITHUB_STARGAZERS_URL,
+  GITHUB_FORK_URL,
+  GITHUB_PULSE_URL,
+} from '../config/githubRepo';
+
+function listFromI18n(
+  t: (key: string, opts?: Record<string, unknown>) => unknown,
+  key: string,
+  vars: Record<string, string | number>
+): string[] {
+  const raw = t(key, { ...vars, returnObjects: true });
+  return Array.isArray(raw) ? (raw as string[]) : [];
+}
+
+function CodeInline({ children }: { children: React.ReactNode }) {
+  return (
+    <code className="rounded-md border border-outline-variant/25 bg-surface-container-high/80 px-2 py-0.5 font-mono text-[0.8rem] text-primary">
+      {children}
+    </code>
+  );
+}
+
+function renderStepLine(line: string, cmd: string): React.ReactNode {
+  if (!line.includes('__CMD__')) return line;
+  const [before, after = ''] = line.split('__CMD__');
+  return (
+    <>
+      {before}
+      <CodeInline>{cmd}</CodeInline>
+      {after}
+    </>
+  );
+}
+
+function SectionBlock({
+  icon: Icon,
+  label,
+  children,
+  variant = 'default',
+}: {
+  icon: React.ComponentType<{ size?: number; className?: string }>;
+  label: string;
+  children: React.ReactNode;
+  variant?: 'default' | 'note';
+}) {
+  const isNote = variant === 'note';
+  return (
+    <div
+      className={`rounded-xl border p-4 ${
+        isNote
+          ? 'border-primary/20 bg-primary-fixed/10'
+          : 'border-outline-variant/20 bg-surface-container-low/40'
+      }`}
+    >
+      <div className="mb-2 flex items-center gap-2">
+        <span
+          className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ${
+            isNote ? 'bg-primary/15 text-primary' : 'bg-surface-container-high text-on-surface-variant'
+          }`}
+        >
+          <Icon size={14} strokeWidth={2.25} />
+        </span>
+        <span className="text-xs font-bold uppercase tracking-wider text-primary">{label}</span>
+      </div>
+      <div className="text-sm leading-relaxed text-on-surface-variant [&_strong]:font-semibold [&_strong]:text-on-surface">
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function GuideCard({
+  title,
+  icon: Icon,
+  accentClass,
+  children,
+}: {
+  title: string;
+  icon: React.ComponentType<{ size?: number; className?: string }>;
+  accentClass: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="group overflow-hidden rounded-2xl border border-outline-variant/15 bg-surface-container-lowest shadow-card transition-shadow duration-300 hover:shadow-lg hover:border-outline-variant/25">
+      <div
+        className={`relative flex items-center gap-3 border-b border-outline-variant/10 px-5 py-4 ${accentClass}`}
+      >
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/15 text-white shadow-sm backdrop-blur-sm">
+          <Icon size={22} strokeWidth={2} />
+        </div>
+        <h3 className="text-lg font-bold tracking-tight text-white drop-shadow-sm">{title}</h3>
+      </div>
+      <div className="space-y-4 p-5 md:p-6">{children}</div>
+    </div>
+  );
+}
 
 export function Help({
   onNavigate,
@@ -27,6 +138,7 @@ export function Help({
   }, []);
 
   const cmd = `./npc -server=${ip}:${p} -vkey=${t('help.clientKeyPlaceholder')}`;
+  const iv = { ip };
 
   return (
     <div className="min-h-screen bg-surface">
@@ -37,148 +149,228 @@ export function Help({
         onLogout={onLogout}
       />
 
-      <main className="ml-64 pt-20 px-10 pb-16">
-        <div className="max-w-4xl space-y-8">
-          <div className="flex gap-4 flex-wrap">
-            <iframe
-              src="https://ghbtns.com/github-btn.html?user=cnlh&repo=nps&type=star&count=true&size=large"
-              frameBorder={0}
-              scrolling="no"
-              width={160}
-              height={30}
-              title="GitHub Star"
-            />
-            <iframe
-              src="https://ghbtns.com/github-btn.html?user=cnlh&repo=nps&type=watch&count=true&size=large&v=2"
-              frameBorder={0}
-              scrolling="no"
-              width={160}
-              height={30}
-              title="GitHub Watch"
-            />
-            <iframe
-              src="https://ghbtns.com/github-btn.html?user=cnlh&repo=nps&type=fork&count=true&size=large"
-              frameBorder={0}
-              scrolling="no"
-              width={158}
-              height={30}
-              title="GitHub Fork"
-            />
+      <main className="ml-64 pt-20 px-6 pb-20 md:px-10">
+        <div className="mx-auto max-w-4xl space-y-8">
+          {/* GitHub */}
+          <div className="relative overflow-hidden rounded-2xl border border-outline-variant/15 bg-gradient-to-br from-surface-container-lowest via-surface-container-low to-primary-fixed/15 p-6 shadow-card">
+            <div className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full bg-primary/10 blur-3xl" />
+            <div className="relative flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
+              <div className="flex gap-4">
+                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-on-surface/[0.06] text-on-surface">
+                  <Github size={28} strokeWidth={2} />
+                </div>
+                <div>
+                  <h2 className="text-lg font-bold text-on-surface">{t('help.githubBannerTitle')}</h2>
+                  <p className="mt-1 max-w-xl text-sm leading-relaxed text-on-surface-variant">
+                    {t('help.githubBannerDesc')}
+                  </p>
+                  <a
+                    href={GITHUB_REPO_URL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-3 inline-flex items-center gap-1.5 text-sm font-semibold text-primary hover:underline"
+                  >
+                    {t('help.openRepo')}
+                    <ExternalLink size={14} />
+                  </a>
+                </div>
+              </div>
+              <div className="flex w-full flex-col gap-3 md:w-auto md:max-w-md md:shrink-0 md:items-stretch">
+                <p className="text-center text-[11px] font-bold uppercase tracking-[0.12em] text-on-surface-variant/70 md:text-right">
+                  {t('help.githubQuickLinks')}
+                </p>
+                <div className="rounded-2xl border border-outline-variant/25 bg-surface-container-lowest/60 p-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-md">
+                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                    <a
+                      href={GITHUB_STARGAZERS_URL}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="group relative flex min-h-[44px] items-center justify-center gap-2 overflow-hidden rounded-xl border border-outline-variant/20 bg-gradient-to-b from-surface-container-high/90 to-surface-container-low/80 px-3 py-2.5 text-sm font-semibold text-on-surface shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-amber-500/40 hover:from-amber-500/10 hover:to-amber-600/5 hover:text-amber-900 hover:shadow-md"
+                    >
+                      <Star
+                        size={17}
+                        className="shrink-0 text-amber-500 transition-transform duration-200 group-hover:scale-110 group-hover:fill-amber-400/30"
+                        strokeWidth={2.25}
+                        aria-hidden
+                      />
+                      {t('help.ghStar')}
+                    </a>
+                    <a
+                      href={GITHUB_FORK_URL}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="group relative flex min-h-[44px] items-center justify-center gap-2 overflow-hidden rounded-xl border border-outline-variant/20 bg-gradient-to-b from-surface-container-high/90 to-surface-container-low/80 px-3 py-2.5 text-sm font-semibold text-on-surface shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-secondary/45 hover:from-secondary/12 hover:to-secondary/5 hover:text-secondary hover:shadow-md"
+                    >
+                      <GitFork
+                        size={17}
+                        className="shrink-0 text-secondary transition-transform duration-200 group-hover:scale-110"
+                        strokeWidth={2.25}
+                        aria-hidden
+                      />
+                      {t('help.ghFork')}
+                    </a>
+                    <a
+                      href={GITHUB_PULSE_URL}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="group relative flex min-h-[44px] items-center justify-center gap-2 overflow-hidden rounded-xl border border-outline-variant/20 bg-gradient-to-b from-surface-container-high/90 to-surface-container-low/80 px-3 py-2.5 text-sm font-semibold text-on-surface shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:from-primary/12 hover:to-primary/5 hover:text-primary hover:shadow-md"
+                    >
+                      <Activity
+                        size={17}
+                        className="shrink-0 text-primary transition-transform duration-200 group-hover:scale-110"
+                        strokeWidth={2.25}
+                        aria-hidden
+                      />
+                      {t('help.ghWatch')}
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
 
-          <Card>
-            <h3 className="text-lg font-bold text-on-surface mb-4">{t('help.domainExample')}</h3>
-            <p className="text-on-surface-variant text-sm mb-2">
-              <b>适用范围：</b> 小程序开发、微信公众号开发、产品演示
-            </p>
-            <p className="text-on-surface-variant text-sm mb-2">
-              <b>假设场景：</b>
-            </p>
-            <ul className="list-disc list-inside text-on-surface-variant text-sm mb-2 space-y-1">
-              <li>有一个域名 proxy.com，有一台公网机器 ip 为 {ip}</li>
-              <li>两个内网开发站点 127.0.0.1:81，127.0.0.1:82</li>
-              <li>想通过 a.proxy.com 访问 127.0.0.1:81，通过 b.proxy.com 访问 127.0.0.1:82</li>
-            </ul>
-            <p className="text-on-surface-variant text-sm mb-2"><b>使用步骤：</b></p>
-            <ul className="list-disc list-inside text-on-surface-variant text-sm mb-2 space-y-1">
-              <li>将 *.proxy.com 解析到公网服务器 {ip}</li>
-              <li>在客户端管理中创建一个客户端，记录下验证密钥</li>
-              <li>点击该客户端的域名管理，添加两条规则：1、域名：a.proxy.com，内网目标：127.0.0.1:81，2、域名：b.proxy.com，内网目标：127.0.0.1:82</li>
-              <li>内网客户端运行 <code className="bg-surface-container-low px-2 py-0.5 rounded font-mono text-xs">{cmd}</code></li>
-              <li>现在访问 a.proxy.com，b.proxy.com 即可成功</li>
-            </ul>
-            <p className="text-on-surface-variant text-sm">
-              注：上文中提到公网 ip（{ip}）为系统自动识别，如果是在测试环境中请自行对应，<b>如需使用 https 请在配置文件中将 https 端口设置为 443，和将对应的证书文件路径添加到配置文件中</b>
-            </p>
-          </Card>
-
-          <div className="grid md:grid-cols-2 gap-6">
-            <Card>
-              <h3 className="text-lg font-bold text-on-surface mb-4">{t('help.tcpExample')}</h3>
-              <p className="text-on-surface-variant text-sm mb-2">
-                <b>适用范围：</b> ssh、远程桌面等 tcp 连接场景
-              </p>
-              <p className="text-on-surface-variant text-sm mb-2">
-                <b>假设场景：</b> 想通过访问公网服务器 {ip} 的 8001 端口，连接内网机器 10.1.50.101 的 22 端口，实现 ssh 连接
-              </p>
-              <p className="text-on-surface-variant text-sm mb-2"><b>使用步骤：</b></p>
-              <ul className="list-disc list-inside text-on-surface-variant text-sm mb-2 space-y-1">
-                <li>在客户端管理中创建一个客户端，记录下验证密钥</li>
-                <li>内网客户端运行 <code className="bg-surface-container-low px-2 py-0.5 rounded font-mono text-xs block mt-1">{cmd}</code></li>
-                <li>在该客户端隧道管理中添加一条 tcp 隧道，填写监听的端口（8001）、内网目标 ip 和目标端口（10.1.50.101:22），选择压缩方式，保存。</li>
-                <li>访问公网服务器 ip（{ip}），填写的监听端口(8001)，相当于访问内网 ip(10.1.50.101):目标端口(22)，例如：{`ssh -p 8001 root@${ip}`}</li>
+          {/* Domain — full width */}
+          <GuideCard
+            title={t('help.domainExample')}
+            icon={Globe}
+            accentClass="bg-gradient-to-r from-sky-600 to-blue-700"
+          >
+            <SectionBlock icon={Sparkles} label={t('help.labelScope')}>
+              <p>{t('help.domainScope')}</p>
+            </SectionBlock>
+            <SectionBlock icon={Network} label={t('help.labelScenario')}>
+              <ul className="list-none space-y-2 pl-0">
+                {listFromI18n(t, 'help.domainScenarioItems', iv).map((line, i) => (
+                  <li key={i} className="flex gap-2">
+                    <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
+                    <span>{line}</span>
+                  </li>
+                ))}
               </ul>
-              <p className="text-on-surface-variant text-sm">
-                注：上文中提到公网 ip（{ip}）为系统自动识别，如果是在测试环境中请自行对应，默认内网客户端已经启动
-              </p>
-            </Card>
-
-            <Card>
-              <h3 className="text-lg font-bold text-on-surface mb-4">{t('help.udpExample')}</h3>
-              <p className="text-on-surface-variant text-sm mb-2">
-                <b>适用范围：</b> 内网 dns 解析等 udp 连接场景
-              </p>
-              <p className="text-on-surface-variant text-sm mb-2">
-                <b>假设场景：</b> 内网有一台 dns（10.1.50.102:53），在非内网环境下想使用该 dns，公网服务器为 {ip}
-              </p>
-              <p className="text-on-surface-variant text-sm mb-2"><b>使用步骤：</b></p>
-              <ul className="list-disc list-inside text-on-surface-variant text-sm mb-2 space-y-1">
-                <li>在客户端管理中创建一个客户端，记录下验证密钥</li>
-                <li>内网客户端运行 <code className="bg-surface-container-low px-2 py-0.5 rounded font-mono text-xs block mt-1">{cmd}</code></li>
-                <li>在该客户端的隧道管理中添加一条 udp 隧道，填写监听的端口（53）、内网目标 ip 和目标端口（10.1.50.102:53），选择压缩方式，保存。</li>
-                <li>修改本机 dns 为 {ip}，则相当于使用 10.1.50.202 作为 dns 服务器</li>
+            </SectionBlock>
+            <SectionBlock icon={Cable} label={t('help.labelSteps')}>
+              <ul className="list-none space-y-3 pl-0">
+                {listFromI18n(t, 'help.domainStepItems', iv).map((line, i) => (
+                  <li key={i} className="flex gap-2">
+                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/12 text-[11px] font-bold text-primary">
+                      {i + 1}
+                    </span>
+                    <span>{renderStepLine(line, cmd)}</span>
+                  </li>
+                ))}
               </ul>
-              <p className="text-on-surface-variant text-sm">
-                注：上文中提到公网 ip（{ip}）为系统自动识别，如果是在测试环境中请自行对应，默认内网客户端已经启动
-              </p>
-            </Card>
+            </SectionBlock>
+            <SectionBlock icon={Info} label={t('help.labelNote')} variant="note">
+              <p>{t('help.domainNote', { ip })}</p>
+            </SectionBlock>
+          </GuideCard>
+
+          <div className="grid gap-6 md:grid-cols-2">
+            <GuideCard title={t('help.tcpExample')} icon={Cable} accentClass="bg-gradient-to-r from-emerald-600 to-teal-700">
+              <SectionBlock icon={Sparkles} label={t('help.labelScope')}>
+                <p>{t('help.tcpScope')}</p>
+              </SectionBlock>
+              <SectionBlock icon={Network} label={t('help.labelScenario')}>
+                <p>{t('help.tcpScenario', { ip })}</p>
+              </SectionBlock>
+              <SectionBlock icon={Cable} label={t('help.labelSteps')}>
+                <ul className="list-none space-y-3 pl-0">
+                  {listFromI18n(t, 'help.tcpStepItems', iv).map((line, i) => (
+                    <li key={i} className="flex gap-2">
+                      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/12 text-[11px] font-bold text-primary">
+                        {i + 1}
+                      </span>
+                      <span className="break-words">{renderStepLine(line, cmd)}</span>
+                    </li>
+                  ))}
+                </ul>
+              </SectionBlock>
+              <SectionBlock icon={Info} label={t('help.labelNote')} variant="note">
+                <p>{t('help.tcpNote', { ip })}</p>
+              </SectionBlock>
+            </GuideCard>
+
+            <GuideCard title={t('help.udpExample')} icon={Radio} accentClass="bg-gradient-to-r from-violet-600 to-purple-700">
+              <SectionBlock icon={Sparkles} label={t('help.labelScope')}>
+                <p>{t('help.udpScope')}</p>
+              </SectionBlock>
+              <SectionBlock icon={Network} label={t('help.labelScenario')}>
+                <p>{t('help.udpScenario', { ip })}</p>
+              </SectionBlock>
+              <SectionBlock icon={Cable} label={t('help.labelSteps')}>
+                <ul className="list-none space-y-3 pl-0">
+                  {listFromI18n(t, 'help.udpStepItems', iv).map((line, i) => (
+                    <li key={i} className="flex gap-2">
+                      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/12 text-[11px] font-bold text-primary">
+                        {i + 1}
+                      </span>
+                      <span>{renderStepLine(line, cmd)}</span>
+                    </li>
+                  ))}
+                </ul>
+              </SectionBlock>
+              <SectionBlock icon={Info} label={t('help.labelNote')} variant="note">
+                <p>{t('help.udpNote', { ip })}</p>
+              </SectionBlock>
+            </GuideCard>
           </div>
 
-          <div className="grid md:grid-cols-2 gap-6">
-            <Card>
-              <h3 className="text-lg font-bold text-on-surface mb-4">{t('help.socks5Example')}</h3>
-              <p className="text-on-surface-variant text-sm mb-2">
-                <b>适用范围：</b> 在外网环境下如同使用 vpn 一样访问内网设备或者资源
-              </p>
-              <p className="text-on-surface-variant text-sm mb-2">
-                <b>假设场景：</b> 想将公网服务器 {ip} 的 8003 端口作为 socks5 代理，达到访问内网任意设备或者资源的效果
-              </p>
-              <p className="text-on-surface-variant text-sm mb-2"><b>使用步骤：</b></p>
-              <ul className="list-disc list-inside text-on-surface-variant text-sm mb-2 space-y-1">
-                <li>在客户端管理中创建一个客户端，记录下验证密钥</li>
-                <li>内网客户端运行 <code className="bg-surface-container-low px-2 py-0.5 rounded font-mono text-xs block mt-1">{cmd}</code></li>
-                <li>在该客户端隧道管理中添加一条 socks5 代理，填写监听的端口（8003），验证用户名和密码自行选择（建议先不填，部分客户端不支持，proxifer 支持），选择压缩方式，保存。</li>
-                <li>在外网环境的本机配置 socks5 代理，ip 为公网服务器 ip（{ip}），端口为填写的监听端口(8003)，即可畅享内网了</li>
-              </ul>
-              <p className="text-on-surface-variant text-sm">
-                注：上文中提到公网 ip（{ip}）为系统自动识别，如果是在测试环境中请自行对应，默认内网客户端已经启动
-              </p>
-            </Card>
+          <div className="grid gap-6 md:grid-cols-2">
+            <GuideCard title={t('help.socks5Example')} icon={Shield} accentClass="bg-gradient-to-r from-amber-600 to-orange-700">
+              <SectionBlock icon={Sparkles} label={t('help.labelScope')}>
+                <p>{t('help.socks5Scope')}</p>
+              </SectionBlock>
+              <SectionBlock icon={Network} label={t('help.labelScenario')}>
+                <p>{t('help.socks5Scenario', { ip })}</p>
+              </SectionBlock>
+              <SectionBlock icon={Cable} label={t('help.labelSteps')}>
+                <ul className="list-none space-y-3 pl-0">
+                  {listFromI18n(t, 'help.socks5StepItems', iv).map((line, i) => (
+                    <li key={i} className="flex gap-2">
+                      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/12 text-[11px] font-bold text-primary">
+                        {i + 1}
+                      </span>
+                      <span>{renderStepLine(line, cmd)}</span>
+                    </li>
+                  ))}
+                </ul>
+              </SectionBlock>
+              <SectionBlock icon={Info} label={t('help.labelNote')} variant="note">
+                <p>{t('help.socks5Note', { ip })}</p>
+              </SectionBlock>
+            </GuideCard>
 
-            <Card>
-              <h3 className="text-lg font-bold text-on-surface mb-4">{t('help.httpExample')}</h3>
-              <p className="text-on-surface-variant text-sm mb-2">
-                <b>适用范围：</b> 在外网环境下访问内网站点
-              </p>
-              <p className="text-on-surface-variant text-sm mb-2">
-                <b>假设场景：</b> 想将公网服务器 {ip} 的 8004 端口作为 http 代理，访问内网网站
-              </p>
-              <p className="text-on-surface-variant text-sm mb-2"><b>使用步骤：</b></p>
-              <ul className="list-disc list-inside text-on-surface-variant text-sm mb-2 space-y-1">
-                <li>在客户端管理中创建一个客户端，记录下验证密钥</li>
-                <li>内网客户端运行 <code className="bg-surface-container-low px-2 py-0.5 rounded font-mono text-xs block mt-1">{cmd}</code></li>
-                <li>在该客户端隧道管理中添加一条 http 代理，填写监听的端口（8004），选择压缩方式，保存。</li>
-                <li>在外网环境的本机配置 http 代理，ip 为公网服务器 ip（{ip}），端口为填写的监听端口(8004)，即可访问了</li>
-              </ul>
-              <p className="text-on-surface-variant text-sm">
-                注：上文中提到公网 ip（{ip}）为系统自动识别，如果是在测试环境中请自行对应，默认内网客户端已经启动
-              </p>
-            </Card>
+            <GuideCard title={t('help.httpExample')} icon={Network} accentClass="bg-gradient-to-r from-rose-600 to-pink-700">
+              <SectionBlock icon={Sparkles} label={t('help.labelScope')}>
+                <p>{t('help.httpScope')}</p>
+              </SectionBlock>
+              <SectionBlock icon={Network} label={t('help.labelScenario')}>
+                <p>{t('help.httpScenario', { ip })}</p>
+              </SectionBlock>
+              <SectionBlock icon={Cable} label={t('help.labelSteps')}>
+                <ul className="list-none space-y-3 pl-0">
+                  {listFromI18n(t, 'help.httpStepItems', iv).map((line, i) => (
+                    <li key={i} className="flex gap-2">
+                      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/12 text-[11px] font-bold text-primary">
+                        {i + 1}
+                      </span>
+                      <span>{renderStepLine(line, cmd)}</span>
+                    </li>
+                  ))}
+                </ul>
+              </SectionBlock>
+              <SectionBlock icon={Info} label={t('help.labelNote')} variant="note">
+                <p>{t('help.httpNote', { ip })}</p>
+              </SectionBlock>
+            </GuideCard>
           </div>
 
-          <Card>
-            <p className="text-on-surface-variant text-sm"><b>{t('help.multiTunnelNote')}</b></p>
-          </Card>
+          <div className="flex items-start gap-4 rounded-2xl border border-secondary/25 bg-secondary-container/15 px-6 py-5 shadow-sm">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-secondary/20 text-secondary">
+              <Info size={20} />
+            </div>
+            <p className="text-sm font-medium leading-relaxed text-on-surface">{t('help.multiTunnelNote')}</p>
+          </div>
         </div>
       </main>
     </div>

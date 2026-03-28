@@ -283,6 +283,7 @@ export function Dashboard({ onNavigate, onLogout }: { onNavigate: (view: string)
                             paddingAngle={2}
                             dataKey="value"
                             label={({ name, value }) => `${name}: ${formatBytes(value)}`}
+                            rootTabIndex={-1}
                           >
                             {flowData.map((_, i) => (
                               <Cell key={i} fill={i === 0 ? 'var(--color-primary)' : 'var(--color-secondary-container)'} />
@@ -308,7 +309,7 @@ export function Dashboard({ onNavigate, onLogout }: { onNavigate: (view: string)
                     {t('dashboard.tunnelTypeDist')}
                   </h2>
                 </div>
-                <div className="relative -mx-1 rounded-2xl bg-gradient-to-b from-primary-fixed/30 via-transparent to-transparent px-1 pb-1">
+                <div className="relative -mx-1 select-none rounded-2xl bg-gradient-to-b from-primary-fixed/30 via-transparent to-transparent px-1 pb-1 [&_.recharts-wrapper]:outline-none [&_.recharts-surface]:outline-none [&_.recharts-layer]:outline-none [&_path:focus]:outline-none [&_.recharts-legend-item]:outline-none [&_.recharts-legend-item:focus]:outline-none [&_.recharts-legend-item:focus-visible]:outline-none">
                   {(() => {
                     const tunnelPieData = [
                       { name: t('sidebar.domain'), value: hostCount },
@@ -324,19 +325,20 @@ export function Dashboard({ onNavigate, onLogout }: { onNavigate: (view: string)
                       <div className="relative h-[220px]">
                         <ResponsiveContainer width="100%" height="100%">
                           <PieChart margin={{ top: 4, right: 4, left: 4, bottom: 0 }}>
-                            <Pie
-                              data={tunnelPieData}
-                              cx="50%"
-                              cy="46%"
-                              innerRadius={52}
-                              outerRadius={82}
-                              paddingAngle={3}
-                              cornerRadius={5}
-                              stroke="var(--color-surface-container-lowest)"
-                              strokeWidth={2}
-                              dataKey="value"
-                              nameKey="name"
-                            >
+                          <Pie
+                            data={tunnelPieData}
+                            cx="50%"
+                            cy="46%"
+                            innerRadius={52}
+                            outerRadius={82}
+                            paddingAngle={3}
+                            cornerRadius={5}
+                            stroke="var(--color-surface-container-lowest)"
+                            strokeWidth={2}
+                            dataKey="value"
+                            nameKey="name"
+                            rootTabIndex={-1}
+                          >
                               {tunnelPieData.map((_, i) => (
                                 <Cell key={`tunnel-${tunnelPieData[i].name}-${i}`} fill={TUNNEL_PIE_COLORS[i % TUNNEL_PIE_COLORS.length]} />
                               ))}

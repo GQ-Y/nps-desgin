@@ -325,6 +325,67 @@
     "clientKeyPlaceholder": "client verify key",
     "serverIpPlaceholder": "Server IP",
     "portPlaceholder": "Port",
-    "multiTunnelNote": "A single client can add multiple tunnels or domain resolutions"
+    "multiTunnelNote": "A single client can add multiple tunnels or domain resolutions",
+    "labelScope": "Scope",
+    "labelScenario": "Scenario",
+    "labelSteps": "Steps",
+    "labelNote": "Note",
+    "githubBannerTitle": "Source & community",
+    "githubBannerDesc": "This admin UI and server fork live on GitHub — use the shortcuts below to star, fork, or view recent activity.",
+    "openRepo": "Open on GitHub",
+    "githubQuickLinks": "Quick links",
+    "ghStar": "Star",
+    "ghWatch": "Activity",
+    "ghFork": "Fork",
+    "domainScope": "Mini programs, WeChat official accounts, demos",
+    "domainScenarioItems": [
+      "You have a domain proxy.com and a public server at {{ip}}",
+      "Two internal sites at 127.0.0.1:81 and 127.0.0.1:82",
+      "You want a.proxy.com → 127.0.0.1:81 and b.proxy.com → 127.0.0.1:82"
+    ],
+    "domainStepItems": [
+      "Point *.proxy.com to your public server {{ip}}",
+      "Create a client in the console and note its verify key",
+      "Under that client’s domain rules, add: (1) a.proxy.com → 127.0.0.1:81; (2) b.proxy.com → 127.0.0.1:82",
+      "Run the agent on the LAN: __CMD__",
+      "Visit a.proxy.com and b.proxy.com — they should resolve to the internal sites"
+    ],
+    "domainNote": "{{ip}} is filled from the server when available; replace it in lab setups. For HTTPS, set the HTTPS port to 443 in config and point certificate paths correctly.",
+    "tcpScope": "SSH, RDP, and other TCP use cases",
+    "tcpScenario": "Expose public {{ip}}:8001 to forward to internal 10.1.50.101:22 (SSH).",
+    "tcpStepItems": [
+      "Create a client and note its verify key",
+      "Run the agent: __CMD__",
+      "Add a TCP tunnel: listen 8001, target 10.1.50.101:22, enable compression if needed",
+      "Connecting to {{ip}}:8001 is like 10.1.50.101:22, e.g. ssh -p 8001 root@{{ip}}"
+    ],
+    "tcpNote": "{{ip}} is auto-detected when possible; adjust in test environments. Assumes the agent is already running.",
+    "udpScope": "Internal DNS and other UDP workloads",
+    "udpScenario": "Internal DNS at 10.1.50.102:53; you want to use it from outside via public {{ip}}.",
+    "udpStepItems": [
+      "Create a client and note its verify key",
+      "Run the agent: __CMD__",
+      "Add a UDP tunnel: listen 53, target 10.1.50.102:53",
+      "Set your machine’s DNS to {{ip}} to use 10.1.50.102 as the resolver"
+    ],
+    "udpNote": "{{ip}} is auto-detected when possible; adjust in test environments. Assumes the agent is already running.",
+    "socks5Scope": "VPN-like access to internal hosts from the internet",
+    "socks5Scenario": "Use public {{ip}}:8003 as a SOCKS5 entry to reach internal resources.",
+    "socks5StepItems": [
+      "Create a client and note its verify key",
+      "Run the agent: __CMD__",
+      "Add a SOCKS5 tunnel on port 8003 (optional user/password; leave empty first if your client is picky)",
+      "Configure SOCKS5 on your laptop: host {{ip}}, port 8003"
+    ],
+    "socks5Note": "{{ip}} is auto-detected when possible; adjust in test environments. Assumes the agent is already running.",
+    "httpScope": "HTTP proxy to internal sites from outside",
+    "httpScenario": "Use public {{ip}}:8004 as an HTTP proxy for internal websites.",
+    "httpStepItems": [
+      "Create a client and note its verify key",
+      "Run the agent: __CMD__",
+      "Add an HTTP proxy tunnel on port 8004",
+      "Set system/browser HTTP proxy to {{ip}}:8004"
+    ],
+    "httpNote": "{{ip}} is auto-detected when possible; adjust in test environments. Assumes the agent is already running."
   }
 }
