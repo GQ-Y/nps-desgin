@@ -35,7 +35,11 @@ func (s *BaseController) Prepare() {
 	timeNowUnix := time.Now().Unix()
 	if !(md5Key != "" && (math.Abs(float64(timeNowUnix-int64(timestamp))) <= 20) && (crypt.Md5(configKey+strconv.Itoa(timestamp)) == md5Key)) {
 		if s.GetSession("auth") != true {
-			s.Redirect(beego.AppConfig.String("web_base_url")+"/login/index", 302)
+			if SpaAdminIndexExists() {
+				s.Redirect(SpaAdminEntryPath(), 302)
+			} else {
+				s.Redirect(beego.AppConfig.String("web_base_url")+"/login/index", 302)
+			}
 		}
 	} else {
 		s.SetSession("isAdmin", true)

@@ -11,7 +11,7 @@ func Init() {
 		var ns *beego.Namespace
 		if controllers.SpaAdminIndexExists() {
 			ns = beego.NewNamespace(web_base_url,
-				beego.NSRouter("/", &controllers.SpaRootController{}, "get:Get"),
+				beego.NSRouter("/", &controllers.SpaRootController{}, "get:Get;head:Head"),
 			beego.NSRouter("/api/dashboard", &controllers.ApiController{}, "get:Dashboard"),
 			beego.NSRouter("/api/notifications", &controllers.ApiController{}, "get:Notifications"),
 			beego.NSRouter("/api/public-config", &controllers.ApiController{}, "get:PublicConfig"),
@@ -50,7 +50,7 @@ func Init() {
 		beego.AddNamespace(ns)
 	} else {
 		if controllers.SpaAdminIndexExists() {
-			beego.Router("/", &controllers.SpaRootController{}, "get:Get")
+			beego.Router("/", &controllers.SpaRootController{}, "get:Get;head:Head")
 		} else {
 			beego.Router("/", &controllers.IndexController{}, "*:Index")
 		}

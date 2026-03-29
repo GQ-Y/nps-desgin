@@ -21,12 +21,21 @@ func SpaAdminIndexExists() bool {
 	return err == nil
 }
 
+// SpaAdminEntryPath 新管理端入口路径（含 web_base_url 前缀时带子路径）。
+func SpaAdminEntryPath() string {
+	base := strings.TrimSuffix(beego.AppConfig.String("web_base_url"), "/")
+	if base != "" {
+		return base + "/static/spa/"
+	}
+	return "/static/spa/"
+}
+
 // Get 重定向到 /static/spa/（支持 web_base_url 子路径）。
 func (c *SpaRootController) Get() {
-	base := strings.TrimSuffix(beego.AppConfig.String("web_base_url"), "/")
-	target := "/static/spa/"
-	if base != "" {
-		target = base + "/static/spa/"
-	}
-	c.Redirect(target, 302)
+	c.Redirect(SpaAdminEntryPath(), 302)
+}
+
+// Head 与 Get 一致，避免 curl -I / 监控检查返回 404。
+func (c *SpaRootController) Head() {
+	c.Redirect(SpaAdminEntryPath(), 302)
 }

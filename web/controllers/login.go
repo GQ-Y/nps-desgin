@@ -24,8 +24,17 @@ type record struct {
 }
 
 func (self *LoginController) Index() {
-	// Try login implicitly, will succeed if it's configured as no-auth(empty username&password).
 	webBaseUrl := beego.AppConfig.String("web_base_url")
+	// 新面板存在时不再渲染旧登录页，统一进 SPA（书签 /login/index 亦如此）
+	if SpaAdminIndexExists() {
+		if self.doLogin("", "", false) {
+			self.Redirect(SpaAdminEntryPath(), 302)
+			return
+		}
+		self.Redirect(SpaAdminEntryPath(), 302)
+		return
+	}
+	// Try login implicitly, will succeed if it's configured as no-auth(empty username&password).
 	if self.doLogin("", "", false) {
 		self.Redirect(webBaseUrl+"/index/index", 302)
 	}
@@ -107,6 +116,10 @@ func (self *LoginController) doLogin(username, password string, explicit bool) b
 }
 func (self *LoginController) Register() {
 	if self.Ctx.Request.Method == "GET" {
+		if SpaAdminIndexExists() {
+			self.Redirect(SpaAdminEntryPath(), 302)
+			return
+		}
 		self.Data["web_base_url"] = beego.AppConfig.String("web_base_url")
 		self.TplName = "login/register.html"
 	} else {
@@ -139,6 +152,10 @@ func (self *LoginController) Register() {
 
 func (self *LoginController) Out() {
 	self.SetSession("auth", false)
+	if SpaAdminIndexExists() {
+		self.Redirect(SpaAdminEntryPath(), 302)
+		return
+	}
 	self.Redirect(beego.AppConfig.String("web_base_url")+"/login/index", 302)
 }
 
