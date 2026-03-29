@@ -1,0 +1,142 @@
+# 推送版本标签（如 v0.0.1）时交叉编译并自动创建 GitHub Release，上传各平台 bundle。
+# 用法：在 .github/releases/<tag>.md 写好说明后：git tag -a v0.0.1 -m "0.0.1" && git push origin v0.0.1
+name: Release cross-platform
+
+on:
+  push:
+    tags:
+      - "v*"
+
+concurrency:
+  group: release-cross-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  admin-ui:
+    name: Build nps-desgin → web/static/spa
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: pnpm
+          cache-dependency-path: nps-desgin/pnpm-lock.yaml
+
+      - name: Build admin UI
+        run: chmod +x scripts/build-admin-ui.sh && ./scripts/build-admin-ui.sh
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: web-spa
+          path: web/static/spa
+          retention-days: 7
+
+  compile:
+    name: ${{ matrix.name }}
+    needs: admin-ui
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: linux-amd64
+            goos: linux
+            goarch: amd64
+            goarm: ""
+          - name: linux-arm64
+            goos: linux
+            goarch: arm64
+            goarm: ""
+          - name: linux-armv7
+            goos: linux
+            goarch: arm
+            goarm: "7"
+          - name: darwin-amd64
+            goos: darwin
+            goarch: amd64
+            goarm: ""
+          - name: darwin-arm64
+            goos: darwin
+            goarch: arm64
+            goarm: ""
+          - name: windows-amd64
+            goos: windows
+            goarch: amd64
+            goarm: ""
+          - name: windows-386
+            goos: windows
+            goarch: "386"
+            goarm: ""
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: web-spa
+          path: web/static/spa
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Build nps & npc
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          CGO_ENABLED: "0"
+        run: |
+          set -euo pipefail
+          mkdir -p dist bundle
+          EXT=""
+          if [ "$GOOS" = "windows" ]; then EXT=".exe"; fi
+          unset GOARM || true
+          if [ -n "${{ matrix.goarm }}" ]; then export GOARM="${{ matrix.goarm }}"; fi
+          go build -trimpath -ldflags "-s -w" -o "dist/nps${EXT}" ./cmd/nps
+          go build -trimpath -ldflags "-s -w" -o "dist/npc${EXT}" ./cmd/npc
+          NAME="nps-${{ matrix.name }}"
+          mkdir -p "bundle/$NAME"
+          cp "dist/nps${EXT}" "bundle/$NAME/"
+          cp "dist/npc${EXT}" "bundle/$NAME/"
+          cp -r conf web "bundle/$NAME/"
+          tar -C bundle -czvf "${NAME}.tar.gz" "$NAME"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bundle-${{ matrix.name }}
+          path: "*.tar.gz"
+          retention-days: 30
+
+  publish:
+    name: Create GitHub Release
+    needs: compile
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download bundle artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: bundle-*
+          path: release-assets
+          merge-multiple: true
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: ${{ github.ref_name }}
+          body_path: .github/releases/${{ github.ref_name }}.md
+          files: release-assets/*.tar.gz
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
